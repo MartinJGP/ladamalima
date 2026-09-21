@@ -1,8 +1,11 @@
 export const ASSETS = {};
 
 const SOURCES = {
-  heroine: "./assets/sprites/heroine-atlas.png",
+  heroine: "./assets/sprites/heroine-v3-atlas.png",
   enemies: "./assets/sprites/enemy-atlas.png",
+  urbanEnemies: "./assets/sprites/urban-enemy-atlas.png",
+  victory: "./assets/sprites/victory-v3-atlas.png",
+  guitar: "./assets/sprites/guitar-equipment.png",
   bouquet: "./assets/sprites/bouquet-atlas.png",
   background: "./assets/backgrounds/plaza-mayor.png"
 };

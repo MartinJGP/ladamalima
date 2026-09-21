@@ -1,59 +1,57 @@
-import { GAME } from "../config.js";
+import { GAME, PLAYER_VISUAL_SCALE, PLAYER_REFERENCE_HEIGHT } from "../config.js";
 import { ASSETS, drawAtlasFrame } from "../managers/AssetManager.js";
 
-const overlap = (a,b) => a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
-const rects = (y,height,ranges) => ranges.map(([a,b])=>({x:Math.max(0,a-7),y,w:b-a+15,h:height}));
-
-const HERO = {
-  idle: rects(0,128,[[73,156],[206,289],[340,426],[476,561],[617,701],[753,838],[889,975]]),
-  walk: rects(128,150,[[73,173],[207,309],[340,441],[485,601],[628,739],[765,879]]),
-  run: rects(128,150,[[908,1021],[1048,1163],[1200,1312],[1354,1484]]),
-  jump: rects(128,150,[[1200,1312],[1354,1484]]), fall: rects(128,150,[[1048,1163],[908,1021]]),
-  crouch: rects(278,112,[[58,187],[233,355]]),
-  skirt: rects(390,150,[[44,214],[232,356],[377,538],[575,761],[787,958],[980,1149],[1168,1321],[1354,1507]]),
-  fan: rects(535,155,[[49,203],[233,433],[461,683],[694,921],[982,1225],[1271,1444]]),
-  hurt: rects(690,135,[[49,146],[154,295]]), defeat: rects(690,135,[[154,295],[374,512],[598,738],[803,1013]]),
-  victory: rects(815,209,[[45,185],[224,364],[400,520],[545,678],[700,825],[861,986],[1010,1157],[1190,1307],[1344,1495]])
+const overlap=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
+const CW=200,CH=200,cell=(col,row)=>({x:col*CW,y:row*CH,w:CW,h:CH});
+const VICTORY_W=256;
+const STATES={
+  idle:[cell(0,0),cell(1,0)],walk:[2,3,4,5].map(c=>cell(c,0)),run:[6,7,8,9].map(c=>cell(c,0)),
+  jump:[cell(0,1),cell(1,1),cell(2,1)],fall:[cell(3,1)],land:[cell(4,1),cell(5,1)],
+  crouch:[cell(6,1),cell(7,1)],hurt:[cell(8,1),cell(9,1)],guitar:Array.from({length:10},(_,c)=>cell(c,2)),
+  skirt:[cell(0,3),cell(1,3),cell(2,3)],fan:[cell(3,3),cell(4,3),cell(5,3)],defeat:[cell(6,3),cell(7,3)],
+  victory:Array.from({length:8},(_,i)=>({x:i*VICTORY_W,y:0,w:VICTORY_W,h:256}))
 };
-const SPEED = { idle:5, walk:9, run:13, jump:4, fall:4, crouch:3, skirt:18, fan:20, hurt:8, defeat:5, victory:8 };
+const SPEED={idle:3,walk:9,run:13,jump:7,fall:1,land:12,crouch:3,hurt:8,skirt:11,fan:8,guitar:6.8,defeat:3,victory:3.2};
 
-export class Player {
-  constructor(input, audio) { this.input=input; this.audio=audio; this.reset(); }
-  reset() { Object.assign(this,{x:110,y:380,w:42,h:82,vx:0,vy:0,onGround:false,facing:1,stamina:100,hp:3,inv:0,attack:null,cooldowns:{skirt:0,fan:0},anim:"idle",animT:0,locked:false}); }
-  update(dt, level, enemies, onHurt) {
-    this.inv=Math.max(0,this.inv-dt); this.cooldowns.skirt=Math.max(0,this.cooldowns.skirt-dt); this.cooldowns.fan=Math.max(0,this.cooldowns.fan-dt); this.animT+=dt;
-    if (this.locked) { this.vx*=.85; return; }
-    const left=this.input.is("left"), right=this.input.is("right"), crouch=this.input.is("crouch")&&this.onGround;
-    const running=this.input.is("run")&&this.stamina>1&&!crouch; const dir=(right?1:0)-(left?1:0); const max=running?310:190;
-    if(dir){this.vx += dir*(running?1450:1120)*dt; this.vx=Math.max(-max,Math.min(max,this.vx)); this.facing=dir;} else this.vx*=Math.pow(.0008,dt);
-    if(running&&dir) this.stamina=Math.max(0,this.stamina-26*dt); else this.stamina=Math.min(100,this.stamina+18*dt);
-    if(this.input.tap("jump")&&this.onGround&&!crouch){this.vy=-650;this.onGround=false;this.audio.sfx("jump");this.animT=0;}
-    if(this.input.tap("skirt")&&!this.cooldowns.skirt){this.attack={type:"skirt",t:.44,duration:.44};this.cooldowns.skirt=.7;this.audio.sfx("skirt");this.animT=0;}
-    if(this.input.tap("fan")&&!this.cooldowns.fan){this.attack={type:"fan",t:.36,duration:.36};this.cooldowns.fan=.55;this.audio.sfx("fan");this.animT=0;}
-    if(this.attack){this.attack.t-=dt;if(this.attack.t<=0)this.attack=null;}
-    this.vy += GAME.gravity*dt; const oldY=this.y; this.x+=this.vx*dt; this.x=Math.max(0,Math.min(level.worldWidth-this.w,this.x)); this.y+=this.vy*dt; this.onGround=false;
-    for(const p of level.platforms){ if(this.x+this.w>p.x&&this.x<p.x+p.w&&oldY+this.h<=p.y+12&&this.y+this.h>=p.y&&this.vy>=0){this.y=p.y-this.h;this.vy=0;this.onGround=true;} }
-    for(const h of level.hazards){if(overlap(this.rect(),{x:h.x,y:472,w:h.w,h:68}))this.takeDamage(onHurt);}
-    for(const e of enemies){
-      if(e.dead)continue;
-      if(this.attack&&this.attackIsActive()&&overlap(this.attackRect(),e.rect())){if(e.hit(this.attack.type==="skirt"?2:1,this.facing))this.audio.sfx("hit");}
-      else if(e.canDamage?.()&&overlap(this.rect(),e.attackRect?.()||e.rect()))this.takeDamage(onHurt);
-    }
+export class Player{
+  constructor(input,audio){this.input=input;this.audio=audio;this.reset();}
+  reset(){Object.assign(this,{x:110,y:404,w:42,h:82,baseH:82,crouchH:48,crouched:false,vx:0,vy:0,onGround:true,facing:1,stamina:100,hp:3,inv:0,attack:null,cooldowns:{skirt:0,fan:0,guitar:0},guitarCooldown:8,anim:"idle",animT:0,landingT:0,locked:false});}
+  update(dt,level,enemies,onHurt){
+    this.inv=Math.max(0,this.inv-dt);for(const k of Object.keys(this.cooldowns))this.cooldowns[k]=Math.max(0,this.cooldowns[k]-dt);this.animT+=dt;this.landingT=Math.max(0,this.landingT-dt);
+    if(this.locked){this.vx*=.82;return;}
+    const left=this.input.is("left"),right=this.input.is("right");const wantsCrouch=this.input.is("crouch")&&this.onGround&&!this.attack;this.setCrouched(wantsCrouch);
+    const running=this.input.is("run")&&this.stamina>1&&!this.crouched&&!this.attack;const dir=(right?1:0)-(left?1:0);const max=running?310:190;
+    if(dir&&!this.crouched&&this.attack?.type!=="guitar"){this.vx+=dir*(running?1450:1120)*dt;this.vx=Math.max(-max,Math.min(max,this.vx));this.facing=dir;}else this.vx*=Math.pow(.0008,dt);
+    if(running&&dir)this.stamina=Math.max(0,this.stamina-26*dt);else this.stamina=Math.min(100,this.stamina+18*dt);
+    if(this.input.tap("jump")&&this.onGround&&!this.crouched&&!this.attack){this.vy=-650;this.onGround=false;this.audio.sfx("jump");this.setAnim("jump");}
+    if(this.input.tap("skirt")&&!this.cooldowns.skirt&&!this.crouched){this.beginAttack("skirt",.31,.48,"skirt");}
+    if(this.input.tap("fan")&&!this.cooldowns.fan&&!this.crouched){this.beginAttack("fan",.43,.62,"fan");}
+    if(this.input.tap("guitar")&&!this.cooldowns.guitar&&!this.crouched&&this.onGround){this.beginAttack("guitar",1.46,this.guitarCooldown,"skirt");}
+    if(this.attack){this.attack.t-=dt;if(this.attack.t<=0){this.attack=null;this.setAnim("idle");}}
+    const oldY=this.y,wasGrounded=this.onGround,fallSpeed=this.vy;this.vy+=GAME.gravity*dt;this.x+=this.vx*dt;this.x=Math.max(0,Math.min(level.worldWidth-this.w,this.x));this.y+=this.vy*dt;this.onGround=false;
+    for(const p of level.platforms){if(this.x+this.w>p.x&&this.x<p.x+p.w&&oldY+this.h<=p.y+12&&this.y+this.h>=p.y&&this.vy>=0){this.y=p.y-this.h;this.vy=0;this.onGround=true;}}
+    if(!wasGrounded&&this.onGround&&fallSpeed>180){this.landingT=.16;this.setAnim("land");}
+    for(const h of level.hazards)if(overlap(this.rect(),{x:h.x,y:436,w:h.w,h:50}))this.takeDamage(onHurt);
+    for(const e of enemies){if(e.dead)continue;if(this.attack&&this.attackIsActive()&&overlap(this.attackRect(),e.rect())){if(e.hit(this.attackDamage(),this.facing))this.audio.sfx("hit");}else if(e.canDamage?.()&&overlap(this.rect(),e.attackRect?.()||e.rect()))this.takeDamage(onHurt);}
     if(this.y>GAME.height+100)this.takeDamage(onHurt,true);
-    const next=this.attack?this.attack.type:this.inv>.82?"hurt":crouch?"crouch":!this.onGround?(this.vy<0?"jump":"fall"):Math.abs(this.vx)>230?"run":Math.abs(this.vx)>12?"walk":"idle";
-    if(next!==this.anim){this.anim=next;this.animT=0;}
+    const next=this.attack?this.attack.type:this.inv>.82?"hurt":this.landingT>0?"land":this.crouched?"crouch":!this.onGround?(this.vy<0?"jump":"fall"):Math.abs(this.vx)>230?"run":Math.abs(this.vx)>12?"walk":"idle";this.setAnim(next,false);
   }
-  attackIsActive(){if(!this.attack)return false;const progress=1-this.attack.t/this.attack.duration;return progress>.28&&progress<.78;}
-  takeDamage(cb,fall=false){if(this.inv||this.locked)return;this.hp--;this.inv=1.2;this.anim="hurt";this.animT=0;this.vy=-360;this.vx=-this.facing*180;this.audio.sfx("hurt");if(fall){this.x=Math.max(80,this.x-160);this.y=330;}cb(this.hp);}
-  attackRect(){const reach=this.attack?.type==="fan"?96:76;return{x:this.facing>0?this.x+this.w:this.x-reach,y:this.y+13,w:reach,h:60};}
+  beginAttack(type,duration,cooldown,sound){this.attack={type,t:duration,duration};this.cooldowns[type]=cooldown;this.audio.sfx(sound);this.setAnim(type);}
+  setCrouched(value){if(value===this.crouched)return;const bottom=this.y+this.h;this.crouched=value;this.h=value?this.crouchH:this.baseH;this.y=bottom-this.h;}
+  attackProgress(){return this.attack?1-this.attack.t/this.attack.duration:0;}
+  attackIsActive(){const p=this.attackProgress();if(this.attack?.type==="guitar")return p>=.60&&p<=.71;if(this.attack?.type==="fan")return p>=.38&&p<=.78;return p>=.30&&p<=.73;}
+  attackDamage(){return this.attack?.type==="guitar"?5:this.attack?.type==="fan"?1.35:2;}
+  takeDamage(cb,fall=false){if(this.inv||this.locked)return;this.hp--;this.inv=1.2;this.setAnim("hurt");this.vy=-360;this.vx=-this.facing*180;this.audio.sfx("hurt");if(fall){this.x=Math.max(80,this.x-160);this.y=330;}cb(this.hp);}
+  attackRect(){const type=this.attack?.type;if(type==="guitar")return{x:this.x-45,y:this.y+36,w:132,h:46};const reach=type==="fan"?104:66;return{x:this.facing>0?this.x+this.w:this.x-reach,y:this.y+17,w:reach,h:58};}
   rect(){return{x:this.x,y:this.y,w:this.w,h:this.h};}
-  setAnimation(name,time=0){if(this.anim!==name)this.animT=time;this.anim=name;}
+  setAnim(name,reset=true){if(this.anim!==name){this.anim=name;if(reset)this.animT=0;}}
+  setAnimation(name,time=0){this.anim=name;this.animT=time;}
   draw(ctx,camera){
-    const frames=HERO[this.anim]||HERO.idle; const speed=SPEED[this.anim]||6;
-    let index=Math.floor(this.animT*speed); index=(this.anim==="defeat"||this.anim==="victory")?Math.min(frames.length-1,index):index%frames.length;
-    const crouched=this.anim==="crouch", dw=crouched?104:118, dh=crouched?86:118;
-    const dx=Math.round(this.x-camera+this.w/2-dw/2),dy=Math.round(this.y+this.h-dh);
-    const alpha=this.inv>0&&Math.floor(this.inv*12)%2?.45:1;
-    drawAtlasFrame(ctx,ASSETS.heroine,frames[index],{x:dx,y:dy,w:dw,h:dh},this.facing<0,alpha);
+    const frames=STATES[this.anim]||STATES.idle,speed=SPEED[this.anim]||6;let index=Math.floor(this.animT*speed);index=(this.anim==="defeat"||this.anim==="victory"||this.anim==="guitar")?Math.min(frames.length-1,index):index%frames.length;
+    const size=PLAYER_REFERENCE_HEIGHT*1.18*PLAYER_VISUAL_SCALE,bottom=this.y+this.h,dx=Math.round(this.x-camera+this.w/2-size/2),dy=Math.round(bottom-size);
+    const blink=this.inv>0&&Math.floor(this.inv*12)%2,alpha=blink ? .45 : 1,flip=this.facing<0;
+    if(this.cooldowns.guitar<=0&&this.anim!=="guitar"&&this.anim!=="victory"&&this.anim!=="defeat")this.drawBackGuitar(ctx,dx,dy,size,flip);
+    const image=this.anim==="victory"?ASSETS.victory:ASSETS.heroine;drawAtlasFrame(ctx,image,frames[index],{x:dx,y:dy,w:size,h:size},flip,alpha);
   }
+  drawBackGuitar(ctx,dx,dy,size,flip){const img=ASSETS.guitar;if(!img)return;const frame={x:0,y:0,w:img.width/2,h:img.height};const w=size*.34,h=size*.60,x=flip?dx+size*.53:dx+size*.13,y=dy+size*.24;drawAtlasFrame(ctx,img,frame,{x,y,w,h},flip,.95);}
 }

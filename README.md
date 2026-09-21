@@ -6,9 +6,9 @@ Videojuego de plataformas 2D retro para navegador, inspirado en plazas, balcones
 
 - **Stack:** Canvas 2D + JavaScript ES Modules + Web Audio API. No necesita dependencias ni compilación, mantiene 60 FPS con delta time y es fácil de extender.
 - **Resolución lógica:** 960 × 540, escalada de forma responsiva.
-- **Sprite lógico de la protagonista:** 42 × 82 px dentro de celdas objetivo de 64 × 96 px.
-- **Controles:** A/D o flechas para moverse; Shift para correr; Espacio/W/↑ para saltar; S/↓ para agacharse; J/Z para falda; K/X para abanico; P/Esc pausa; R reinicia.
-- **Mecánicas:** aceleración, desaceleración, gravedad, plataformas, cámara lateral, resistencia, dos ataques con hitbox/cooldown, daño, tres vidas, enemigos, peligros, meta animada, puntuación y victoria.
+- **Sprite lógico de la protagonista:** hitbox estable de 42 × 82 px y atlas normalizado a celdas de 200 × 200 px con un único `PLAYER_VISUAL_SCALE`.
+- **Controles:** A/D o flechas para moverse; Shift para correr; Espacio/W/↑ para saltar; S/↓ para agacharse; J/Z para falda; K/X para abanico; L/C para guitarra; P/Esc pausa; R reinicia.
+- **Mecánicas:** aceleración, desaceleración, gravedad, plataformas, cámara lateral, resistencia, tres ataques con ventanas de impacto y cooldown, daño, tres vidas, lanzadores con proyectiles esquivables, enemigos, bolardos dañados, meta animada, puntuación y victoria.
 - **Progreso:** nombre, puntuación, nivel desbloqueado, vidas, récord, progreso, ranking y audio guardados en `localStorage`; exportación/importación JSON incluida.
 
 ## Niveles configurables
@@ -28,7 +28,10 @@ dist/
   index.html
   assets/
     backgrounds/plaza-mayor.png
-    sprites/heroine-atlas.png
+    sprites/heroine-v3-atlas.png
+    sprites/urban-enemy-atlas.png
+    sprites/victory-v3-atlas.png
+    sprites/guitar-equipment.png
     audio/                 # reservado para pistas licenciadas futuras
   src/
     config.js
@@ -47,12 +50,12 @@ El audio actual es original y se sintetiza en tiempo real con Web Audio API: mú
 
 ## Spritesheets previstos
 
-- Protagonista: idle, caminar, correr, saltar, caer, agacharse, ataque de falda, ataque de abanico, daño, derrota y victoria.
-- Enemigos: guardia patrullero, perseguidor y paloma hostil; idle, movimiento, ataque, daño y derrota.
+- Protagonista: idle, caminar, correr, salto por fases, caída, aterrizaje, agacharse, falda, abanico, especial de guitarra, daño, derrota y celebración de ocho fases.
+- Enemigos: adversario urbano ficticio, perseguidor, lanzador de piedras y paloma; idle, movimiento, alerta, ataque, daño y derrota.
 - Mundo: flores-meta, partículas, peligros, plataformas, faroles, palmeras y elementos de primer plano.
 - UI: corazones, resistencia, ataques disponibles, botones y cursores.
 
-Los sprites se cargan y recortan desde atlas reales: `heroine-atlas.png`, `enemy-atlas.png` y `bouquet-atlas.png`. Las hitboxes permanecen separadas e invisibles; pueden mostrarse únicamente durante desarrollo cambiando `DEBUG_COLLISIONS` en `dist/src/config.js`.
+Los sprites se cargan y recortan desde atlas reales. La herramienta `tools/normalize_sprites.py` audita 78 celdas y normaliza dimensiones enteras, transparencia y anclaje inferior. Las hitboxes permanecen separadas e invisibles; pueden mostrarse únicamente durante desarrollo cambiando `DEBUG_COLLISIONS` en `dist/src/config.js`.
 
 La pantalla de nivel completado y la de derrota son obligatorias: no incluyen cierre exterior ni botón X, por lo que el jugador debe elegir menú, siguiente nivel o reintentar.
 
