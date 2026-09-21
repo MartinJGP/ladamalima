@@ -4,8 +4,12 @@ const SOURCES = {
   heroine: "./assets/sprites/heroine-v3-atlas.png",
   enemies: "./assets/sprites/enemy-atlas.png",
   urbanEnemies: "./assets/sprites/urban-enemy-atlas.png",
+  thrower: "./assets/sprites/thrower-v4-atlas.png",
   victory: "./assets/sprites/victory-v3-atlas.png",
-  guitar: "./assets/sprites/guitar-equipment.png",
+  attacks: "./assets/sprites/attack-v5-atlas.png",
+  crouch: "./assets/sprites/crouch-pandero-atlas.png",
+  crouchIdle: "./assets/sprites/crouch-idle-atlas.png",
+  goalTuna: "./assets/sprites/goal-tuna-animated-atlas.png",
   bouquet: "./assets/sprites/bouquet-atlas.png",
   background: "./assets/backgrounds/plaza-mayor.png"
 };

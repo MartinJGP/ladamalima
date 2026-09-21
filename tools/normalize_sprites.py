@@ -1,6 +1,7 @@
 """Normaliza los atlas generados a celdas enteras y audita su transparencia."""
 
 from pathlib import Path
+from shutil import copyfile
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -64,7 +65,7 @@ def keep_largest_component(cell):
     return cleaned
 
 
-def normalize_grid(path, cols, rows, cell_size, anchor_rows=(), isolate=False):
+def normalize_contain_grid(path, cols, rows, cell_size, max_content=(232, 232)):
     source = Image.open(path).convert("RGBA")
     cw, ch = cell_size
     if source.size == (cols * cw, rows * ch):
@@ -72,7 +73,55 @@ def normalize_grid(path, cols, rows, cell_size, anchor_rows=(), isolate=False):
     output = Image.new("RGBA", (cols * cw, rows * ch))
     for row in range(rows):
         for col in range(cols):
+            raw = source.crop(split_box(source, col, row, cols, rows))
+            bbox = visible_bbox(raw)
+            content = raw.crop(bbox)
+            ratio = min(max_content[0] / content.width, max_content[1] / content.height)
+            content = content.resize((round(content.width * ratio), round(content.height * ratio)), NEAREST)
+            x = col * cw + (cw - content.width) // 2
+            y = row * ch + ch - content.height
+            output.alpha_composite(content, (x, y))
+    output.save(path, optimize=True)
+
+
+def calibrate_attack_body(path, scale=.80):
+    source = Image.open(path).convert("RGBA")
+    output = Image.new("RGBA", source.size)
+    for row in range(2):
+        for col in range(3):
+            cell = source.crop((col * 256, row * 256, (col + 1) * 256, (row + 1) * 256))
+            main = keep_largest_component(cell)
+            main_alpha = main.getchannel("A")
+            rest = cell.copy()
+            rest.putalpha(Image.frombytes(
+                "L", cell.size,
+                bytes(max(0, a - m) for a, m in zip(cell.getchannel("A").get_flattened_data(), main_alpha.get_flattened_data()))
+            ))
+            output.alpha_composite(rest, (col * 256, row * 256))
+            bbox = visible_bbox(main)
+            content = main.crop(bbox)
+            content = content.resize((round(content.width * scale), round(content.height * scale)), NEAREST)
+            center = (bbox[0] + bbox[2]) // 2
+            x = col * 256 + center - content.width // 2
+            y = row * 256 + bbox[3] - content.height
+            output.alpha_composite(content, (x, y))
+    output.save(path, optimize=True)
+
+
+def normalize_grid(path, cols, rows, cell_size, anchor_rows=(), isolate=False, alpha_cutoff=0, force=False):
+    source = Image.open(path).convert("RGBA")
+    cw, ch = cell_size
+    if source.size == (cols * cw, rows * ch) and not force:
+        return
+    output = Image.new("RGBA", (cols * cw, rows * ch))
+    for row in range(rows):
+        for col in range(cols):
             cell = source.crop(split_box(source, col, row, cols, rows)).resize(cell_size, NEAREST)
+            if alpha_cutoff:
+                alpha = cell.getchannel("A")
+                cell.putalpha(alpha.point(lambda value: 0 if value < alpha_cutoff else value))
+            alpha = cell.getchannel("A")
+            cell.putalpha(alpha.point(lambda value: 255 if value >= 250 else value))
             if isolate:
                 cell = keep_largest_component(cell)
             if row in anchor_rows:
@@ -121,17 +170,39 @@ def main():
     victory = SPRITES / "victory-v3-atlas.png"
     guitar = SPRITES / "guitar-equipment.png"
     bouquet = SPRITES / "bouquet-atlas.png"
+    attacks = SPRITES / "attack-v4-atlas.png"
+    attacks_v5 = SPRITES / "attack-v5-atlas.png"
+    crouch = SPRITES / "crouch-pandero-atlas.png"
+    crouch_idle = SPRITES / "crouch-idle-atlas.png"
+    tuna = SPRITES / "goal-tuna-atlas.png"
+    tuna_animated = SPRITES / "goal-tuna-animated-atlas.png"
+    thrower = SPRITES / "thrower-v4-atlas.png"
     normalize_grid(heroine, 10, 4, (200, 200), anchor_rows=(0, 1, 2, 3))
     normalize_grid(urban, 10, 3, (217, 241), anchor_rows=(0, 1, 2), isolate=True)
     normalize_grid(enemies, 10, 3, (217, 241), anchor_rows=(0, 1, 2), isolate=True)
     normalize_victory(victory)
+    normalize_grid(attacks, 3, 2, (256, 256), anchor_rows=(0, 1), alpha_cutoff=72, force=True)
+    copyfile(attacks, attacks_v5)
+    calibrate_attack_body(attacks_v5)
+    normalize_grid(crouch, 4, 2, (256, 256), anchor_rows=(0, 1), force=True)
+    normalize_contain_grid(crouch_idle, 4, 1, (256, 256), max_content=(232, 220))
+    normalize_grid(tuna, 2, 2, (256, 256), anchor_rows=(0, 1), force=True)
+    normalize_grid(tuna_animated, 4, 4, (256, 256), anchor_rows=(0, 1, 2, 3))
+    normalize_grid(thrower, 5, 2, (256, 256), anchor_rows=(0, 1), force=True)
     audit(heroine, 10, 4, (2000, 800))
     audit(urban, 10, 3, (2170, 723))
     audit(enemies, 10, 3, (2170, 723))
     audit(victory, 8, 1, (2048, 256))
     audit(guitar, 2, 1, (1774, 887))
     audit(bouquet, 6, 1, (2172, 724))
-    print("OK: 116 celdas auditadas; cuadrículas enteras, alpha RGBA y anclaje inferior normalizados.")
+    audit(attacks, 3, 2, (768, 512))
+    audit(attacks_v5, 3, 2, (768, 512))
+    audit(crouch, 4, 2, (1024, 512))
+    audit(crouch_idle, 4, 1, (1024, 256))
+    audit(tuna, 2, 2, (512, 512))
+    audit(tuna_animated, 4, 4, (1024, 1024))
+    audit(thrower, 5, 2, (1280, 512))
+    print("OK: 170 celdas auditadas; cuadrículas enteras, alpha RGBA y anclaje inferior normalizados.")
 
 
 if __name__ == "__main__":

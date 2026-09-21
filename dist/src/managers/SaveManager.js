@@ -3,7 +3,7 @@ const fresh = () => ({ name: "", score: 0, lives: 3, unlocked: 1, currentLevel: 
 
 export class SaveManager {
   constructor() { this.data = this.load(); }
-  load() { try { return { ...fresh(), ...JSON.parse(localStorage.getItem(KEY) || "{}") }; } catch { return fresh(); } }
+  load() { try { const stored=JSON.parse(localStorage.getItem(KEY) || "{}"); return { ...fresh(), ...stored, audio:{...fresh().audio,...stored.audio} }; } catch { return fresh(); } }
   save(patch = {}) { this.data = { ...this.data, ...patch }; localStorage.setItem(KEY, JSON.stringify(this.data)); return this.data; }
   newGame(name) { this.data = { ...fresh(), name: name.trim().slice(0, 18), audio: this.data.audio }; return this.save(); }
   complete(level, score, seconds) {

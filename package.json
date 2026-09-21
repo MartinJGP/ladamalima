@@ -1,0 +1,8 @@
+{
+  "name": "la-dama-de-lima",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "verify": "node tools/verify_gameplay.mjs"
+  }
+}
