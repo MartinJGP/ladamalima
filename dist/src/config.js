@@ -1,4 +1,5 @@
 export const GAME = { width: 960, height: 540, gravity: 1850, maxDt: 1 / 30 };
+export const DEBUG_COLLISIONS = false;
 
 export const CONTROLS = {
   left: ["ArrowLeft", "KeyA"], right: ["ArrowRight", "KeyD"],

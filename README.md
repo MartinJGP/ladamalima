@@ -52,7 +52,9 @@ El audio actual es original y se sintetiza en tiempo real con Web Audio API: mú
 - Mundo: flores-meta, partículas, peligros, plataformas, faroles, palmeras y elementos de primer plano.
 - UI: corazones, resistencia, ataques disponibles, botones y cursores.
 
-La hoja conceptual generada está incluida en `dist/assets/sprites/heroine-atlas.png`. El juego dibuja una versión pixel-art optimizada directamente en Canvas para mantener colisiones y animaciones consistentes en todos los navegadores.
+Los sprites se cargan y recortan desde atlas reales: `heroine-atlas.png`, `enemy-atlas.png` y `bouquet-atlas.png`. Las hitboxes permanecen separadas e invisibles; pueden mostrarse únicamente durante desarrollo cambiando `DEBUG_COLLISIONS` en `dist/src/config.js`.
+
+La pantalla de nivel completado y la de derrota son obligatorias: no incluyen cierre exterior ni botón X, por lo que el jugador debe elegir menú, siguiente nivel o reintentar.
 
 ## Ejecución local
 
