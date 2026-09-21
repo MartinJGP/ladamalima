@@ -18,7 +18,7 @@ export class Game {
     if(this.input.tap("pause")){this.paused=!this.paused;this.events.pause?.(this.paused);} if(this.input.tap("restart"))return this.start(this.level.id); if(this.paused)return;
     if(this.finished){this.victoryT+=dt;this.player.setAnimation("victory",this.victoryT);this.spawnPetals();this.updateParticles(dt);if(this.victoryT>3.6)this.finish();return;}
     if(this.defeating){this.defeatT+=dt;this.player.updateDefeatPhysics(dt,this.level);this.player.setAnimation("defeat",this.defeatT);if(this.defeatT>1.05&&this.player.onGround)this.gameOver();return;}
-    const onHurt=hp=>{this.events.hurt?.(hp);if(hp<=0){this.defeating=true;this.player.locked=true;this.player.animT=0;this.audio.stop();}};
+    const onHurt=hp=>{this.events.hurt?.(hp);if(hp<=0&&!this.defeating){this.defeating=true;this.player.locked=true;this.player.animT=0;this.audio.stop();this.audio.sfx("defeat");}};
     this.elapsed+=dt;this.player.update(dt,this.level,this.enemies,onHurt);this.enemies.forEach(e=>e.update(dt,this.player,this.level,source=>this.spawnRock(source)));this.updateProjectiles(dt,onHurt);this.updateParticles(dt);
     this.score=Math.max(0,Math.floor(this.player.x/8)+this.enemies.filter(e=>e.dead).length*250);
     const target=Math.max(0,Math.min(this.level.worldWidth-GAME.width,this.player.x-GAME.width*.34));this.camera+=(target-this.camera)*Math.min(1,dt*6);
@@ -41,7 +41,7 @@ export class Game {
   spawnImpact(x,y){for(let i=0;i<5;i++)this.particles.push({x,y,vx:(Math.random()-.5)*90,vy:-30-Math.random()*55,t:.45,c:i%2?"#917765":"#d0b08a"});}
   spawnPetals(){if(Math.random()<.25)this.particles.push({x:this.player.x+20,y:this.player.y+10,vx:(Math.random()-.5)*100,vy:-70-Math.random()*80,t:1.4,c:Math.random()>.5?PALETTE.gold:PALETTE.red2});}
   updateParticles(dt){this.particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=180*dt;p.t-=dt;});this.particles=this.particles.filter(p=>p.t>0);}
-  draw(){const c=this.ctx;c.clearRect(0,0,GAME.width,GAME.height);this.drawWorld(c);this.drawGoal(c);this.enemies.forEach(e=>e.draw(c,this.camera));if(this.player.crouched){this.player.draw(c,this.camera);this.drawProjectiles(c);}else{this.drawProjectiles(c);this.player.draw(c,this.camera);}this.particles.forEach(p=>{c.globalAlpha=Math.max(0,p.t);c.fillStyle=p.c;c.fillRect(Math.round(p.x-this.camera),Math.round(p.y),6,6);});c.globalAlpha=1;if(DEBUG_COLLISIONS)this.drawDebug(c);if(this.paused)this.overlay(c,"PAUSA","P / ESC para continuar");}
+  draw(){const c=this.ctx;c.clearRect(0,0,GAME.width,GAME.height);this.drawWorld(c);this.drawGoal(c);this.enemies.forEach(e=>e.draw(c,this.camera));if(this.player.crouched){this.player.draw(c,this.camera);this.drawProjectiles(c);}else{this.drawProjectiles(c);this.player.draw(c,this.camera);}this.particles.forEach(p=>{c.globalAlpha=Math.max(0,p.t);c.fillStyle=p.c;c.fillRect(Math.round(p.x-this.camera),Math.round(p.y),6,6);});c.globalAlpha=1;if(this.finished)this.drawVictoryBanner(c);if(DEBUG_COLLISIONS)this.drawDebug(c);if(this.paused)this.overlay(c,"PAUSA","P / ESC para continuar");}
   drawWorld(c){
     const [sky]=this.level.colors;c.fillStyle=sky;c.fillRect(0,0,GAME.width,GAME.height);
     const bg=ASSETS.background;if(bg){const shift=-(this.camera*.1%GAME.width);c.globalAlpha=.92;c.drawImage(bg,shift,-8,GAME.width,405);c.drawImage(bg,shift+GAME.width,-8,GAME.width,405);c.globalAlpha=1;}
@@ -65,6 +65,13 @@ export class Game {
     }
     const x=goal-this.camera-25,y=this.level.goal.y-28+Math.sin(t*3)*4;
     drawAtlasFrame(c,ASSETS.bouquet,{x:index*362,y:118,w:362,h:470},{x,y,w:126,h:146});
+  }
+  drawVictoryBanner(c){
+    const intro=Math.min(1,this.victoryT/.32),ease=1-Math.pow(1-intro,3),scale=.82+.18*ease;
+    const x=Math.round(this.level.goal.x-this.camera),y=Math.round(this.level.goal.y-72);
+    c.save();c.globalAlpha=ease;c.translate(x,y);c.scale(scale,scale);c.textAlign="center";c.textBaseline="middle";
+    c.font='bold 27px "Press Start 2P", monospace';c.lineJoin="round";c.lineWidth=8;c.strokeStyle="#27171d";c.strokeText("Aupa Tuna",0,0);
+    c.lineWidth=3;c.strokeStyle="#a8273d";c.strokeText("Aupa Tuna",0,0);c.fillStyle=PALETTE.cream;c.fillText("Aupa Tuna",0,0);c.restore();
   }
   drawDebug(c){c.save();c.strokeStyle="#00ff90";c.lineWidth=2;for(const r of [this.player.rect(),...this.enemies.filter(e=>!e.dead).map(e=>e.rect()),...this.projectiles])c.strokeRect(r.x-this.camera,r.y,r.w,r.h);c.strokeStyle="#ff935e";for(const h of this.level.hazards)c.strokeRect(h.x-this.camera,436,h.w,50);if(this.player.attack&&this.player.attackIsActive()){const a=this.player.attackRect();c.strokeStyle="#ff3f80";c.strokeRect(a.x-this.camera,a.y,a.w,a.h);}c.restore();}
   overlay(c,title,sub){c.fillStyle="#08101bd9";c.fillRect(0,0,GAME.width,GAME.height);c.textAlign="center";c.fillStyle=PALETTE.gold;c.font="bold 38px monospace";c.fillText(title,GAME.width/2,245);c.fillStyle="#fff";c.font="18px monospace";c.fillText(sub,GAME.width/2,282);}

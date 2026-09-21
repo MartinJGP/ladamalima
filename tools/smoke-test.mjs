@@ -32,7 +32,8 @@ const pigeon=new Enemy({x:300,type:"pigeon"});
 assert.equal(pigeon.y+pigeon.h,486,"las patas de la paloma deben apoyar en el suelo");
 const thrower=new Enemy({x:500,type:"thrower"});
 let throws=0;
-for(let i=0;i<240;i++)thrower.update(1/60,{x:100},()=>throws++);
+const testLevel={worldWidth:1000,platforms:[{x:0,y:486,w:1000,h:54}]};
+for(let i=0;i<240;i++)thrower.update(1/60,{x:100,y:404,w:42,h:82},testLevel,()=>throws++);
 assert.ok(throws>=1,"el lanzador debe preparar y lanzar una piedra");
 
 function projectileTest(crouched){

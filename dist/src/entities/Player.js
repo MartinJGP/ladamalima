@@ -8,7 +8,7 @@ const VICTORY_W=256;
 const STATES={
   idle:[cell(0,0),cell(1,0)],walk:[2,3,4,5].map(c=>cell(c,0)),run:[6,7,8,9].map(c=>cell(c,0)),
   jump:[cell(0,1),cell(1,1),cell(2,1)],fall:[cell(3,1)],land:[cell(4,1),cell(5,1)],
-  hurt:[cell(8,1),cell(9,1)],guitar:Array.from({length:10},(_,c)=>cell(c,2)),
+  hurt:[cell(8,1),cell(9,1)],
   defeat:[cell(6,3),cell(7,3)],
   victory:Array.from({length:8},(_,i)=>({x:i*VICTORY_W,y:0,w:VICTORY_W,h:256}))
 };
@@ -16,6 +16,7 @@ const ATTACK_FRAMES={
   skirt:[largeCell(0,0),largeCell(1,0),largeCell(2,0)],
   fan:[largeCell(0,1),largeCell(1,1),largeCell(2,1)]
 };
+const GUITAR_FRAMES=Array.from({length:10},(_,i)=>largeCell(i%5,Math.floor(i/5)));
 const CROUCH_FRAMES=Array.from({length:8},(_,i)=>largeCell(i%4,Math.floor(i/4)));
 const CROUCH_IDLE_FRAMES=Array.from({length:4},(_,i)=>largeCell(i,0));
 const SPEED={idle:3,walk:9,run:13,jump:7,fall:1,land:12,hurt:8,guitar:6.8,defeat:3,victory:3.2};
@@ -46,7 +47,7 @@ export class Player{
   beginAttack(type,duration,cooldown,sound){this.attack={type,t:duration,duration};this.cooldowns[type]=cooldown;this.audio.sfx(sound);this.setAnim(type);}
   updateCrouch(dt,wantsCrouch){
     this.crouchTarget=wantsCrouch?1:0;
-    const before=this.crouchProgress,speed=6.8;
+    const before=this.crouchProgress,speed=5.2;
     this.crouchProgress=Math.max(0,Math.min(1,before+Math.sign(this.crouchTarget-before)*speed*dt));
     if(Math.abs(this.crouchTarget-this.crouchProgress)<.02)this.crouchProgress=this.crouchTarget;
     const bottom=this.y+this.h;
@@ -82,11 +83,14 @@ export class Player{
     let frames=STATES[this.anim]||STATES.idle,image=this.anim==="victory"?ASSETS.victory:ASSETS.heroine,size=PLAYER_REFERENCE_HEIGHT*1.18*PLAYER_VISUAL_SCALE;
     let index=Math.floor(this.animT*(SPEED[this.anim]||6));
     if(this.anim==="skirt"||this.anim==="fan"){frames=ATTACK_FRAMES[this.anim];image=ASSETS.attacks;size=160;index=Math.min(frames.length-1,Math.floor(this.attackProgress()*frames.length));}
-    else if(this.anim==="crouch"&&this.crouchProgress>=1&&this.crouchTarget===1){
-      frames=CROUCH_IDLE_FRAMES;image=ASSETS.crouchIdle;size=128;index=Math.floor(this.animT*5)%frames.length;
+    else if(this.anim==="guitar"){
+      frames=GUITAR_FRAMES;image=ASSETS.guitarSpecial;size=145;index=Math.min(frames.length-1,Math.floor(this.attackProgress()*frames.length));
     }
-    else if(this.anim==="crouch"){frames=CROUCH_FRAMES;image=ASSETS.crouch;size=143;index=Math.min(6,Math.round(this.crouchProgress*6));}
-    else index=(this.anim==="defeat"||this.anim==="victory"||this.anim==="guitar")?Math.min(frames.length-1,index):index%frames.length;
+    else if(this.anim==="crouch"&&this.crouchProgress>=1&&this.crouchTarget===1){
+      frames=CROUCH_IDLE_FRAMES;image=ASSETS.crouchIdle;size=112;index=Math.floor(this.animT*4.2)%frames.length;
+    }
+    else if(this.anim==="crouch"){frames=CROUCH_FRAMES;image=ASSETS.crouch;size=112;index=Math.min(7,Math.round(this.crouchProgress*7));}
+    else index=(this.anim==="defeat"||this.anim==="victory")?Math.min(frames.length-1,index):index%frames.length;
     const bottom=this.y+this.h,dx=Math.round(this.x-camera+this.w/2-size/2),dy=Math.round(bottom-size);
     const blink=this.inv>0&&Math.floor(this.inv*12)%2,alpha=blink ? .45 : 1,flip=this.facing<0;
     drawAtlasFrame(ctx,image,frames[index],{x:dx,y:dy,w:size,h:size},flip,alpha);

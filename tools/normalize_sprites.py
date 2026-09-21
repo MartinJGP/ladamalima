@@ -84,6 +84,34 @@ def normalize_contain_grid(path, cols, rows, cell_size, max_content=(232, 232)):
     output.save(path, optimize=True)
 
 
+def normalize_uniform_grid(path, source_cols, source_rows, selected, target_cols, target_rows,
+                           cell_size=(256, 256), max_content=(238, 238)):
+    """Reencuadra todos los fotogramas con una escala común para evitar pulsos de tamaño."""
+    source = Image.open(path).convert("RGBA")
+    if source.size == (target_cols * cell_size[0], target_rows * cell_size[1]):
+        return
+    contents = []
+    for index in selected:
+        col, row = index % source_cols, index // source_cols
+        raw = source.crop(split_box(source, col, row, source_cols, source_rows))
+        bbox = visible_bbox(raw)
+        assert bbox, f"{path.name}: fotograma fuente vacío {index}"
+        contents.append(raw.crop(bbox))
+    ratio = min(
+        max_content[0] / max(content.width for content in contents),
+        max_content[1] / max(content.height for content in contents),
+    )
+    cw, ch = cell_size
+    output = Image.new("RGBA", (target_cols * cw, target_rows * ch))
+    for out_index, content in enumerate(contents):
+        content = content.resize((round(content.width * ratio), round(content.height * ratio)), NEAREST)
+        col, row = out_index % target_cols, out_index // target_cols
+        x = col * cw + (cw - content.width) // 2
+        y = row * ch + ch - content.height
+        output.alpha_composite(content, (x, y))
+    output.save(path, optimize=True)
+
+
 def calibrate_attack_body(path, scale=.80):
     source = Image.open(path).convert("RGBA")
     output = Image.new("RGBA", source.size)
@@ -174,6 +202,9 @@ def main():
     attacks_v5 = SPRITES / "attack-v5-atlas.png"
     crouch = SPRITES / "crouch-pandero-atlas.png"
     crouch_idle = SPRITES / "crouch-idle-atlas.png"
+    crouch_v2 = SPRITES / "crouch-pandero-v2-atlas.png"
+    crouch_idle_v2 = SPRITES / "crouch-idle-v2-atlas.png"
+    guitar_special_v2 = SPRITES / "guitar-special-v2-atlas.png"
     tuna = SPRITES / "goal-tuna-atlas.png"
     tuna_animated = SPRITES / "goal-tuna-animated-atlas.png"
     thrower = SPRITES / "thrower-v4-atlas.png"
@@ -186,6 +217,11 @@ def main():
     calibrate_attack_body(attacks_v5)
     normalize_grid(crouch, 4, 2, (256, 256), anchor_rows=(0, 1), force=True)
     normalize_contain_grid(crouch_idle, 4, 1, (256, 256), max_content=(232, 220))
+    normalize_uniform_grid(crouch_v2, 4, 2, list(range(8)), 4, 2, max_content=(238, 238))
+    normalize_uniform_grid(crouch_idle_v2, 4, 1, list(range(4)), 4, 1, max_content=(238, 220))
+    # Se descartan los dos extremos erróneos del generador (abanico sin guitarra) y
+    # se mantienen diez tiempos repitiendo la aparición y la recuperación.
+    normalize_uniform_grid(guitar_special_v2, 5, 2, [1, 1, 2, 3, 4, 5, 6, 7, 8, 8], 5, 2)
     normalize_grid(tuna, 2, 2, (256, 256), anchor_rows=(0, 1), force=True)
     normalize_grid(tuna_animated, 4, 4, (256, 256), anchor_rows=(0, 1, 2, 3))
     normalize_grid(thrower, 5, 2, (256, 256), anchor_rows=(0, 1), force=True)
@@ -199,10 +235,13 @@ def main():
     audit(attacks_v5, 3, 2, (768, 512))
     audit(crouch, 4, 2, (1024, 512))
     audit(crouch_idle, 4, 1, (1024, 256))
+    audit(crouch_v2, 4, 2, (1024, 512))
+    audit(crouch_idle_v2, 4, 1, (1024, 256))
+    audit(guitar_special_v2, 5, 2, (1280, 512))
     audit(tuna, 2, 2, (512, 512))
     audit(tuna_animated, 4, 4, (1024, 1024))
     audit(thrower, 5, 2, (1280, 512))
-    print("OK: 170 celdas auditadas; cuadrículas enteras, alpha RGBA y anclaje inferior normalizados.")
+    print("OK: 192 celdas auditadas; cuadrículas enteras, alpha RGBA y escala uniforme normalizadas.")
 
 
 if __name__ == "__main__":
