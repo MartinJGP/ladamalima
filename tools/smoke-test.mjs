@@ -28,10 +28,10 @@ assert.ok(NORMAL_ENEMY_REFERENCE_HEIGHT>SMALL_ENEMY_REFERENCE_HEIGHT);
 assert.ok(SMALL_ENEMY_REFERENCE_HEIGHT>PROJECTILE_REFERENCE_SIZE);
 assert.ok(LEVELS.every(level=>level.enemies.some(enemy=>enemy.type==="thrower")));
 assert.equal(WORLDS.length,3,"la campaña debe tener tres mundos");
-assert.equal(LEVELS.length,30,"cada mundo debe tener diez capítulos");
-assert.deepEqual(LEVELS.filter(level=>level.chapter===10).map(level=>level.reward),["fan","guitar","regalia"]);
-assert.equal(LEVELS[0].abilities.fan,false);assert.equal(LEVELS[10].abilities.fan,true);assert.equal(LEVELS[10].abilities.guitar,false);assert.equal(LEVELS[20].abilities.guitar,true);
-assert.ok(LEVELS[10].worldWidth>LEVELS[0].worldWidth&&LEVELS[20].worldWidth>LEVELS[10].worldWidth,"cada mundo debe ser más largo que el anterior");
+assert.equal(LEVELS.length,12,"cada mundo debe tener cuatro capítulos");
+assert.deepEqual(LEVELS.filter(level=>level.chapter===4).map(level=>level.reward),["fan","guitar","regalia"]);
+assert.equal(LEVELS[0].abilities.fan,false);assert.equal(LEVELS[4].abilities.fan,true);assert.equal(LEVELS[4].abilities.guitar,false);assert.equal(LEVELS[8].abilities.guitar,true);
+assert.ok(LEVELS[4].worldWidth>LEVELS[0].worldWidth&&LEVELS[8].worldWidth>LEVELS[4].worldWidth,"cada mundo debe ser más largo que el anterior");
 const clonedLevel=getLevel(1);clonedLevel.platforms[0].x=999;
 assert.notEqual(LEVELS[0].platforms[0].x,999,"el nivel debe clonarse sin depender de structuredClone");
 
@@ -68,7 +68,7 @@ assert.equal(projectileTest(true),3,"la piedra debe pasar por encima al agachars
 
 const saves=new SaveManager();saves.newGame();let rankingRequests=0;
 globalThis.fetch=async()=>{rankingRequests++;return new Response(JSON.stringify({ok:true}),{status:201,headers:{"content-type":"application/json"}});};
-for(let level=1;level<=30;level++)saves.complete(level,1000+level*20,20+level);
+for(let level=1;level<=12;level++)saves.complete(level,1000+level*20,20+level);
 assert.equal(rankingRequests,0,"completar niveles no debe publicar el ranking automáticamente");
 await saves.submitFinalRanking("Martin");
 assert.equal(rankingRequests,1,"el ranking debe publicarse solo tras aceptar al final de la partida");

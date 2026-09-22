@@ -64,7 +64,7 @@ export async function POST(request) {
   const levels = Number(input?.levels);
   const time = Number(input?.time);
   const valid = name && Number.isInteger(score) && score >= 0 && score <= 10000000
-    && Number.isInteger(levels) && levels >= 1 && levels <= 30
+    && Number.isInteger(levels) && levels >= 1 && levels <= 12
     && Number.isInteger(time) && time >= 0 && time <= 86400;
   if (!valid) return Response.json({ error: "Puntuación inválida" }, { status: 400, headers: responseHeaders });
 

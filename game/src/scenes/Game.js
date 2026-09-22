@@ -26,7 +26,7 @@ export class Game {
     if(overlap(this.player.rect(),{x:this.level.goal.x-20,y:this.level.goal.y-15,w:118,h:125})&&(!this.boss||this.boss.defeated)){this.beginVictory();}
     this.events.hud?.({score:this.score,stamina:this.player.stamina,hp:this.player.hp,level:this.level.id,cooldowns:this.player.cooldowns,abilities:this.level.abilities,boss:this.boss&&!this.boss.defeated?{hp:this.boss.hp,maxHp:this.boss.maxHp}:null,time:this.elapsed});
   }
-  finish(){if(this.ended)return;this.ended=true;cancelAnimationFrame(this.raf);this.audio.stop();const bonus=Math.max(0,Math.floor((this.level.timeBonus-this.elapsed)*10));const final=this.score+bonus+this.player.hp*300;this.save.complete(this.level.id,final,this.elapsed);this.events.complete?.({score:final,bonus,next:this.level.id<30?this.level.id+1:null,reward:this.level.reward,world:this.level.world,chapter:this.level.chapter});}
+  finish(){if(this.ended)return;this.ended=true;cancelAnimationFrame(this.raf);this.audio.stop();const bonus=Math.max(0,Math.floor((this.level.timeBonus-this.elapsed)*10));const final=this.score+bonus+this.player.hp*300;this.save.complete(this.level.id,final,this.elapsed);this.events.complete?.({score:final,bonus,next:this.level.id<12?this.level.id+1:null,reward:this.level.reward,world:this.level.world,chapter:this.level.chapter});}
   gameOver(){if(this.ended)return;this.ended=true;cancelAnimationFrame(this.raf);this.audio.stop();this.events.gameOver?.();}
   beginVictory(){
     this.finished=true;this.player.locked=true;this.player.reward=this.level.reward;this.player.vx=0;this.player.vy=0;this.player.setCrouched(false);

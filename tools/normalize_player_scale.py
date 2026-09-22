@@ -76,6 +76,79 @@ def darken_aspirant_red(image: Image.Image, columns: int, rows: int) -> None:
     image.putdata(pixels)
 
 
+def restore_novice_props(target_name: str, reference_name: str, columns: int, rows: int) -> None:
+    """Restore only the red flower and fan on the black novice costume.
+
+    The novice is intentionally black-and-white; copying every red pixel from
+    the tuna would incorrectly recolor her vest and skirt trim.  Position masks
+    isolate the two props across the shared atlas layouts.
+    """
+    target = Image.open(SPRITES / target_name).convert("RGBA")
+    reference = Image.open(SPRITES / reference_name).convert("RGBA")
+    assert target.size == reference.size
+    cell_width, cell_height = target.width // columns, target.height // rows
+    target_pixels = list(target.getdata())
+    reference_pixels = list(reference.getdata())
+    for y in range(target.height):
+        local_y = y % cell_height
+        for x in range(target.width):
+            local_x = x % cell_width
+            ref_red, ref_green, ref_blue, ref_alpha = reference_pixels[y * target.width + x]
+            target_red, target_green, target_blue, target_alpha = target_pixels[y * target.width + x]
+            if not ref_alpha or not target_alpha:
+                continue
+            hue, saturation, value = rgb_to_hsv(ref_red / 255, ref_green / 255, ref_blue / 255)
+            if saturation < .45 or value < .20 or not (hue < .04 or hue > .94):
+                continue
+            flower_limit = .55 if columns == 10 and (y // cell_height) == 0 else .82
+            flower = local_x < cell_width * .48 and local_y < cell_height * flower_limit
+            has_fan = not (columns == 10 and (x // cell_width) >= 6)
+            fan = has_fan and local_x > cell_width * .62 and local_y < cell_height * .75
+            raised_fan = has_fan and local_x > cell_width * .38 and local_y < cell_height * .36
+            if flower or fan or raised_fan:
+                target_pixels[y * target.width + x] = (ref_red, ref_green, ref_blue, target_alpha)
+    target.putdata(target_pixels)
+    target.save(SPRITES / target_name, optimize=True)
+
+
+def restore_novice_run_flower() -> None:
+    """The generated run strip has a gray flower, so paint that prop red too."""
+    target = Image.open(SPRITES / "heroine-novice-normalized-atlas.png").convert("RGBA")
+    reference = Image.open(SPRITES / "heroine-tuna-normalized-atlas.png").convert("RGBA")
+    for column in range(6, 10):
+        target_cell = target.crop((column * MAIN_CELL, 0, (column + 1) * MAIN_CELL, MAIN_CELL))
+        reference_cell = reference.crop((column * MAIN_CELL, 0, (column + 1) * MAIN_CELL, MAIN_CELL))
+        points = []
+        for y in range(110):
+            for x in range(105):
+                red, green, blue, alpha = reference_cell.getpixel((x, y))
+                if not alpha:
+                    continue
+                hue, saturation, value = rgb_to_hsv(red / 255, green / 255, blue / 255)
+                if saturation > .50 and value > .20 and (hue < .04 or hue > .94):
+                    points.append((x, y))
+        if not points:
+            continue
+        left, right = min(x for x, _ in points), max(x for x, _ in points)
+        top, bottom = min(y for _, y in points), max(y for _, y in points)
+        for y in range(top, bottom + 1):
+            for x in range(left, right + 1):
+                red, green, blue, alpha = target_cell.getpixel((x, y))
+                if not alpha:
+                    continue
+                hue, saturation, value = rgb_to_hsv(red / 255, green / 255, blue / 255)
+                # Leave face/skin pixels alone if the two generated silhouettes
+                # differ by a few pixels.
+                if .03 < hue < .16 and saturation > .32 and value > .35:
+                    continue
+                if saturation > .28 or value < .16:
+                    continue
+                shade = max(55, min(255, int(value * 255)))
+                target_cell.putpixel((x, y), (shade, max(18, shade // 5), max(26, shade // 6), alpha))
+        target.paste(target_cell, (column * MAIN_CELL, 0))
+    target.save(SPRITES / "heroine-novice-normalized-atlas.png", optimize=True)
+
+
 def install_run(base_name: str, generated_name: str, output_name: str) -> None:
     base = Image.open(SPRITES / base_name).convert("RGBA")
     generated = Image.open(SPRITES / generated_name).convert("RGBA")
@@ -89,6 +162,31 @@ def install_run(base_name: str, generated_name: str, output_name: str) -> None:
             fitted = resize(fitted, MAIN_CELL / fitted.width)
         bottom_center(output, fitted, column, 0, MAIN_CELL)
     output.save(SPRITES / output_name, optimize=True)
+
+
+def derive_novice_run_from_tuna() -> str:
+    """Reuse the polished tuna gait while changing only the costume colors."""
+    source = Image.open(SPRITES / "tuna-run-generated.png").convert("RGBA")
+    pixels = list(source.getdata())
+    cell_width, cell_height = source.width // 4, source.height
+    for index, (red, green, blue, alpha) in enumerate(pixels):
+        if not alpha:
+            continue
+        x, y = index % source.width, index // source.width
+        hue, saturation, value = rgb_to_hsv(red / 255, green / 255, blue / 255)
+        is_red = saturation > .45 and value > .20 and (hue < .04 or hue > .94)
+        if not is_red:
+            continue
+        local_x = x % cell_width
+        # Keep the flower red; remove red vest/skirt trim from the pardilla.
+        if local_x < cell_width * .48 and y < cell_height * .55:
+            continue
+        shade = max(24, min(88, int(value * 255 * .34)))
+        pixels[index] = (shade, shade, shade + 4, alpha)
+    source.putdata(pixels)
+    derived = "novice-run-derived-generated.png"
+    source.save(SPRITES / derived, optimize=True)
+    return derived
 
 
 def uniform_atlas(source_name: str, output_name: str, columns: int, rows: int,
@@ -211,7 +309,7 @@ def assert_atlas(path: str, columns: int, rows: int, cell: int) -> None:
 def main() -> None:
     # Main atlases: only the four run cells are replaced.  Jump cells remain byte-for-byte untouched.
     install_run("heroine-aspirant-atlas.png", "aspirant-run-generated.png", "heroine-aspirant-normalized-atlas.png")
-    install_run("heroine-novice-atlas.png", "novice-run-generated.png", "heroine-novice-normalized-atlas.png")
+    install_run("heroine-novice-atlas.png", derive_novice_run_from_tuna(), "heroine-novice-normalized-atlas.png")
     install_run("heroine-v3-atlas.png", "tuna-run-generated.png", "heroine-tuna-normalized-atlas.png")
 
     # Crouch uses the same body pixel scale from first standing pose through the final recline.
@@ -248,6 +346,14 @@ def main() -> None:
     defeat_atlas("heroine-v3-atlas.png", "defeat-tuna-normalized-atlas.png")
     defeat_atlas("heroine-novice-atlas.png", "defeat-novice-normalized-atlas.png")
     defeat_atlas("heroine-v3-atlas.png", "defeat-aspirant-normalized-atlas.png", aspirant=True)
+
+    # Pardilla stays black/white, but her moño and abanico are always red.
+    restore_novice_props("heroine-novice-normalized-atlas.png", "heroine-tuna-normalized-atlas.png", 10, 4)
+    restore_novice_props("attack-novice-normalized-atlas.png", "attack-tuna-normalized-atlas.png", 3, 2)
+    restore_novice_props("crouch-pandero-novice-normalized-atlas.png", "crouch-pandero-tuna-normalized-atlas.png", 4, 2)
+    restore_novice_props("crouch-idle-novice-normalized-atlas.png", "crouch-idle-tuna-normalized-atlas.png", 4, 1)
+    restore_novice_props("victory-novice-normalized-atlas.png", "victory-tuna-normalized-atlas.png", 8, 1)
+    restore_novice_run_flower()
 
     expected = [
         ("heroine-aspirant-normalized-atlas.png", 10, 4, MAIN_CELL),

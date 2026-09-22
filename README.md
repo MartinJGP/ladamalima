@@ -13,11 +13,11 @@ Videojuego de plataformas 2D retro para navegador, ambientado en Lima, Barranco 
 
 ## Campaña configurable
 
-La campaña de 30 capítulos se define como datos en `game/src/data/levels.js`:
+La campaña de 12 capítulos se define como datos en `game/src/data/levels.js`:
 
-1. **Lima (1–10):** traje de aspirante y patada elegante con abanico como ataque 1. El capítulo 10 desbloquea el ataque de abanico independiente.
-2. **Barranco (11–20):** traje de pardilla, recorridos más largos y falda + abanico. El capítulo 20 entrega la guitarra.
-3. **Trujillo (21–30):** traje tunero completo y las tres habilidades. El capítulo 30 incluye al tuno jefe, la entrega de cintas y parches y el baile final.
+1. **Lima (1–4):** traje de aspirante y patada elegante con abanico como ataque 1. El capítulo 4 desbloquea el ataque de abanico independiente.
+2. **Barranco (5–8):** traje de pardilla, recorridos más largos y falda + abanico. El capítulo 8 entrega la guitarra.
+3. **Trujillo (9–12):** traje tunero completo y las tres habilidades. El capítulo 12 incluye al tuno jefe, la entrega de cintas y parches y el baile final.
 
 Los capítulos se desbloquean en orden. Cada uno declara ancho, dificultad, plataformas, enemigos, peligros y meta; los recorridos aumentan progresivamente de longitud entre mundos.
 

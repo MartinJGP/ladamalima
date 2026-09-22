@@ -10,7 +10,7 @@ export const ATLAS_TO_WORLD=PLAYER_REFERENCE_HEIGHT*1.18*PLAYER_VISUAL_SCALE/CW;
 const NORMAL_DRAW_SIZE=CW*ATLAS_TO_WORLD;
 const LARGE_DRAW_SIZE=LARGE*ATLAS_TO_WORLD;
 const STATES={
-  idle:[cell(0,0),cell(1,0)],walk:[2,3,4,5].map(c=>cell(c,0)),run:[6,7,8,9].map(c=>cell(c,0)),
+  idle:[cell(0,0),cell(1,0)],walk:[6,7,8,9].map(c=>cell(c,0)),run:[6,7,8,9].map(c=>cell(c,0)),
   jump:[cell(0,1),cell(1,1),cell(2,1)],fall:[cell(3,1)],land:[cell(4,1),cell(5,1)],
   hurt:[cell(8,1),cell(9,1)],
   defeat:[cell(6,3),cell(7,3)],

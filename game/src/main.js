@@ -31,7 +31,7 @@ function renderMenu(){
         ${menuButton("help","CÓMO JUGAR",icon.help)}
         ${menuButton("credits","CRÉDITOS",icon.credits)}
       </nav>
-      <div class="menu-meta"><span>RÉCORD ${String(save.data.record).padStart(6,"0")}</span><span>PROGRESO ${Object.keys(save.data.progress).length}/30</span></div>
+      <div class="menu-meta"><span>RÉCORD ${String(save.data.record).padStart(6,"0")}</span><span>PROGRESO ${Object.keys(save.data.progress).length}/12</span></div>
     </div>
     <aside class="sound-panel" aria-label="Audio"><button data-audio="music">MÚSICA ${save.data.audio.music?"ON":"OFF"}</button><button data-audio="sfx">FX ${save.data.audio.sfx?"ON":"OFF"}</button><label>VOL <input type="range" min="0" max="1" step=".05" value="${save.data.audio.volume}" data-audio="volume"></label></aside>
     <p class="menu-hint">ENTER SELECCIONA · FLECHAS PARA MOVER</p>
@@ -56,7 +56,7 @@ function modal(title,body,confirm="VOLVER",onConfirm=closeModal,dismissible=true
 function closeModal(w){w.remove();}
 
 function showLevels(){
-  const worlds=WORLDS.map(world=>{const levels=LEVELS.filter(level=>level.world===world.id).map(level=>{const locked=level.id>save.data.unlocked,best=save.data.progress[level.id]?.score||0,current=level.id===save.data.currentLevel&&!locked;const status=locked?"BLOQUEADO":current?"ACTUAL":best?"COMPLETO":"DISPONIBLE";return `<button class="level-card${current?" is-current":""}" data-level="${level.id}" ${locked?"disabled":""} aria-label="Capítulo ${level.chapter}, ${status.toLowerCase()}"><b>${level.chapter}</b><small>${locked?"×":current?"ACTUAL":best?"✓":"○"}</small></button>`;}).join("");const worldLocked=(world.id-1)*10+1>save.data.unlocked;return `<section class="world-levels ${worldLocked?"is-locked":""}"><h3>MUNDO ${world.id} · ${world.name}</h3><p>${world.subtitle}</p><div class="level-grid">${levels}</div></section>`;}).join("");
+  const worlds=WORLDS.map(world=>{const levels=LEVELS.filter(level=>level.world===world.id).map(level=>{const locked=level.id>save.data.unlocked,best=save.data.progress[level.id]?.score||0,current=level.id===save.data.currentLevel&&!locked;const status=locked?"BLOQUEADO":current?"ACTUAL":best?"COMPLETO":"DISPONIBLE";return `<button class="level-card${current?" is-current":""}" data-level="${level.id}" ${locked?"disabled":""} aria-label="Capítulo ${level.chapter}, ${status.toLowerCase()}"><b>${level.chapter}</b><small>${locked?"×":current?"ACTUAL":best?"✓":"○"}</small></button>`;}).join("");const worldLocked=(world.id-1)*4+1>save.data.unlocked;return `<section class="world-levels ${worldLocked?"is-locked":""}"><h3>MUNDO ${world.id} · ${world.name}</h3><p>${world.subtitle}</p><div class="level-grid">${levels}</div></section>`;}).join("");
   const w=modal("Seleccionar capítulo",worlds,"VOLVER",closeModal);w.querySelectorAll("[data-level]:not(:disabled)").forEach(button=>button.onclick=()=>startGame(+button.dataset.level));
 }
 
@@ -66,7 +66,7 @@ async function showRanking(){
     const ranking=await save.getRanking();
     if(!w.isConnected)return;
     w.querySelector(".ranking-status").textContent="CONECTADO · PUNTUACIONES COMPARTIDAS";
-    w.querySelector("tbody").innerHTML=ranking.length?ranking.map((r,i)=>`<tr><td>${i+1}</td><td>${safe(r.name)}</td><td>${r.score}</td><td>${r.levels}/30</td><td>${formatTime(r.time)}</td></tr>`).join(""):`<tr><td colspan="5">Aún no hay marcas. Completa la aventura.</td></tr>`;
+    w.querySelector("tbody").innerHTML=ranking.length?ranking.map((r,i)=>`<tr><td>${i+1}</td><td>${safe(r.name)}</td><td>${r.score}</td><td>${r.levels}/12</td><td>${formatTime(r.time)}</td></tr>`).join(""):`<tr><td colspan="5">Aún no hay marcas. Completa la aventura.</td></tr>`;
   }catch(error){
     if(!w.isConnected)return;
     w.querySelector(".ranking-status").textContent="SIN CONEXIÓN CON EL RANKING GLOBAL";
@@ -74,7 +74,7 @@ async function showRanking(){
   }
 }
 
-function showHelp(){modal("Cómo jugar",`<div class="help-grid"><article><kbd>A</kbd><kbd>D</kbd><h3>MOVER</h3><p>Camina a izquierda y derecha.</p></article><article><kbd>⇧</kbd><h3>CORRER</h3><p>Más velocidad, consume resistencia.</p></article><article><kbd>ESPACIO</kbd><h3>SALTAR</h3><p>Supera plataformas y peligros.</p></article><article><kbd>S</kbd><h3>AGACHARSE</h3><p>Esquiva las piedras que vuelan a media altura.</p></article><article><kbd>J</kbd><h3>ATAQUE 1</h3><p>Patada con abanico como Aspirante; falda con los demás trajes.</p></article><article><kbd>K</kbd><h3>ABANICO</h3><p>Se obtiene al completar Lima.</p></article><article><kbd>L</kbd><h3>GUITARRA</h3><p>Se obtiene al completar Barranco.</p></article></div><p class="goal-copy">Completa 10 capítulos por mundo. Las flores marcan capítulos normales; los instrumentos esperan al final de Lima y Barranco.</p>`);}
+function showHelp(){modal("Cómo jugar",`<div class="help-grid"><article><kbd>A</kbd><kbd>D</kbd><h3>MOVER</h3><p>Camina a izquierda y derecha.</p></article><article><kbd>⇧</kbd><h3>CORRER</h3><p>Más velocidad, consume resistencia.</p></article><article><kbd>ESPACIO</kbd><h3>SALTAR</h3><p>Supera plataformas y peligros.</p></article><article><kbd>S</kbd><h3>AGACHARSE</h3><p>Esquiva las piedras que vuelan a media altura.</p></article><article><kbd>J</kbd><h3>ATAQUE 1</h3><p>Patada con abanico como Aspirante; falda con los demás trajes.</p></article><article><kbd>K</kbd><h3>ABANICO</h3><p>Se obtiene al completar Lima.</p></article><article><kbd>L</kbd><h3>GUITARRA</h3><p>Se obtiene al completar Barranco.</p></article></div><p class="goal-copy">Completa 4 capítulos por mundo. Las flores marcan capítulos normales; los instrumentos esperan al final de Lima y Barranco.</p>`);}
 
 function showCredits(){modal("Créditos",`<div class="credits"><img class="credits-author" src="./assets/sprites/credits-author.png" alt="Ilustración del creador"><div><h3>LA DAMA DE LIMA</h3><p class="creator-credit">Creado por <strong>Martini_83</strong></p><p>Diseño, programación, pixel art y selección musical para esta experiencia.</p><p>Inspirado con respeto en la danza, los balcones, plazas y la memoria visual de Lima.</p></div></div>`);}
 
@@ -93,7 +93,7 @@ function updateHud(d){shell.querySelector("#score").textContent=String(d.score).
 function showComplete(r){
   if(!r.next){showFinalRanking(r);return;}
   const reward=r.reward==="fan"?"<p class=\"unlock-message\">¡ABANICO DESBLOQUEADO! Ya puedes usar K en Barranco.</p>":r.reward==="guitar"?"<p class=\"unlock-message\">¡GUITARRA DESBLOQUEADA! Ya puedes usar L en Trujillo.</p>":"";
-  const w=modal(r.chapter===10?"¡Mundo completado!":"¡Capítulo completado!",`<div class="result-score">${r.score}</div><p>Bono por tiempo y vidas: ${r.bonus}</p>${reward}<button id="next-level">${r.chapter===10?"SIGUIENTE MUNDO":"SIGUIENTE CAPÍTULO"}</button>`,"MENÚ PRINCIPAL",()=>renderMenu(),false);
+  const w=modal(r.chapter===4?"¡Mundo completado!":"¡Capítulo completado!",`<div class="result-score">${r.score}</div><p>Bono por tiempo y vidas: ${r.bonus}</p>${reward}<button id="next-level">${r.chapter===4?"SIGUIENTE MUNDO":"SIGUIENTE CAPÍTULO"}</button>`,"MENÚ PRINCIPAL",()=>renderMenu(),false);
   w.querySelector("#next-level").addEventListener("click",()=>startGame(r.next));
 }
 function showFinalRanking(r){
