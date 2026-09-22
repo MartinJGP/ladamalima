@@ -35,3 +35,4 @@ html.mobile-portrait .play-screen .rotate-overlay{display:flex;position:fixed;z-
 html.mobile-portrait .rotate-overlay strong{font-size:clamp(18px,5vw,28px);color:var(--gold);line-height:1.45}
 html.mobile-portrait .rotate-overlay span{font-size:13px;color:#d7d9e2}
 @media(max-width:760px){.credits-author{max-height:220px}.pixel-modal{max-height:88vh}.creator-credit{font-size:15px}}
+#save-ranking,.secondary-modal{display:inline-block;border:2px solid var(--gold);background:var(--red);color:white;padding:12px 18px;margin-top:18px}

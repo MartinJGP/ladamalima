@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { PLAYER_VISUAL_SCALE, PLAYER_REFERENCE_HEIGHT, NORMAL_ENEMY_REFERENCE_HEIGHT, SMALL_ENEMY_REFERENCE_HEIGHT, PROJECTILE_REFERENCE_SIZE } from "../game/src/config.js";
-import { LEVELS } from "../game/src/data/levels.js";
+import { LEVELS, getLevel } from "../game/src/data/levels.js";
 import { Player } from "../game/src/entities/Player.js";
 import { Enemy } from "../game/src/entities/Enemy.js";
 import { Game } from "../game/src/scenes/Game.js";
+import { SaveManager } from "../game/src/managers/SaveManager.js";
 
 const input={is:()=>false,tap:()=>false};
 const audio={sfx:()=>{},music:()=>{},stop:()=>{}};
@@ -13,6 +14,8 @@ assert.ok(PLAYER_REFERENCE_HEIGHT>NORMAL_ENEMY_REFERENCE_HEIGHT);
 assert.ok(NORMAL_ENEMY_REFERENCE_HEIGHT>SMALL_ENEMY_REFERENCE_HEIGHT);
 assert.ok(SMALL_ENEMY_REFERENCE_HEIGHT>PROJECTILE_REFERENCE_SIZE);
 assert.ok(LEVELS.every(level=>level.enemies.some(enemy=>enemy.type==="thrower")));
+const clonedLevel=getLevel(1);clonedLevel.platforms[0].x=999;
+assert.notEqual(LEVELS[0].platforms[0].x,999,"el nivel debe clonarse sin depender de structuredClone");
 
 const player=new Player(input,audio),feet=player.y+player.h;
 player.setCrouched(true);
@@ -43,5 +46,14 @@ function projectileTest(crouched){
 }
 assert.equal(projectileTest(false),2,"la piedra debe golpear a la protagonista de pie");
 assert.equal(projectileTest(true),3,"la piedra debe pasar por encima al agacharse");
+
+const saves=new SaveManager();saves.newGame();let rankingRequests=0;
+globalThis.fetch=async()=>{rankingRequests++;return new Response(JSON.stringify({ok:true}),{status:201,headers:{"content-type":"application/json"}});};
+saves.complete(1,1000,20);saves.complete(2,1200,25);saves.complete(3,1500,30);
+assert.equal(rankingRequests,0,"completar niveles no debe publicar el ranking automáticamente");
+await saves.submitFinalRanking("Martin");
+assert.equal(rankingRequests,1,"el ranking debe publicarse solo tras aceptar al final de la partida");
+await saves.submitFinalRanking("Martin");
+assert.equal(rankingRequests,1,"una partida no debe publicarse dos veces");
 
 console.log("OK: escala, combate, anclajes, lanzamiento y evasión validados.");

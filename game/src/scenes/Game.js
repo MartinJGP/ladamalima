@@ -25,7 +25,7 @@ export class Game {
     if(overlap(this.player.rect(),{x:this.level.goal.x-20,y:this.level.goal.y-15,w:118,h:125})){this.beginVictory();}
     this.events.hud?.({score:this.score,stamina:this.player.stamina,hp:this.player.hp,level:this.level.id,cooldowns:this.player.cooldowns,time:this.elapsed});
   }
-  finish(){if(this.ended)return;this.ended=true;cancelAnimationFrame(this.raf);this.audio.stop();const bonus=Math.max(0,Math.floor((this.level.timeBonus-this.elapsed)*10));const final=this.score+bonus+this.player.hp*300;this.save.data.playTime+=this.elapsed;this.save.complete(this.level.id,final,this.elapsed);this.events.complete?.({score:final,bonus,next:this.level.id<3?this.level.id+1:null});}
+  finish(){if(this.ended)return;this.ended=true;cancelAnimationFrame(this.raf);this.audio.stop();const bonus=Math.max(0,Math.floor((this.level.timeBonus-this.elapsed)*10));const final=this.score+bonus+this.player.hp*300;this.save.complete(this.level.id,final,this.elapsed);this.events.complete?.({score:final,bonus,next:this.level.id<3?this.level.id+1:null});}
   gameOver(){if(this.ended)return;this.ended=true;cancelAnimationFrame(this.raf);this.audio.stop();this.events.gameOver?.();}
   beginVictory(){
     this.finished=true;this.player.locked=true;this.player.vx=0;this.player.vy=0;this.player.setCrouched(false);

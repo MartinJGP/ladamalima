@@ -21,4 +21,14 @@ export const LEVELS = [
   }
 ];
 
-export const getLevel = id => structuredClone(LEVELS.find(x => x.id === id) || LEVELS[0]);
+export function getLevel(id) {
+  const level = LEVELS.find(x => x.id === id) || LEVELS[0];
+  return {
+    ...level,
+    colors: [...level.colors],
+    platforms: level.platforms.map(platform => ({ ...platform })),
+    enemies: level.enemies.map(enemy => ({ ...enemy })),
+    hazards: level.hazards.map(hazard => ({ ...hazard })),
+    goal: { ...level.goal }
+  };
+}
