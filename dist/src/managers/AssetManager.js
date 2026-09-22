@@ -8,8 +8,8 @@ const SOURCES = {
   victory: "./assets/sprites/victory-v3-atlas.png",
   attacks: "./assets/sprites/attack-v5-atlas.png",
   guitarSpecial: "./assets/sprites/guitar-special-v2-atlas.png",
-  crouch: "./assets/sprites/crouch-pandero-v2-atlas.png",
-  crouchIdle: "./assets/sprites/crouch-idle-v2-atlas.png",
+  crouch: "./assets/sprites/crouch-pandero-v3-atlas.png",
+  crouchIdle: "./assets/sprites/crouch-idle-v3-atlas.png",
   goalTuna: "./assets/sprites/goal-tuna-animated-atlas.png",
   bouquet: "./assets/sprites/bouquet-atlas.png",
   background: "./assets/backgrounds/plaza-mayor.png"

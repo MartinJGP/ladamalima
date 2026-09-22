@@ -202,13 +202,13 @@ def main():
     attacks_v5 = SPRITES / "attack-v5-atlas.png"
     crouch = SPRITES / "crouch-pandero-atlas.png"
     crouch_idle = SPRITES / "crouch-idle-atlas.png"
-    crouch_v2 = SPRITES / "crouch-pandero-v2-atlas.png"
-    crouch_idle_v2 = SPRITES / "crouch-idle-v2-atlas.png"
+    crouch_v3 = SPRITES / "crouch-pandero-v3-atlas.png"
+    crouch_idle_v3 = SPRITES / "crouch-idle-v3-atlas.png"
     guitar_special_v2 = SPRITES / "guitar-special-v2-atlas.png"
     tuna = SPRITES / "goal-tuna-atlas.png"
     tuna_animated = SPRITES / "goal-tuna-animated-atlas.png"
     thrower = SPRITES / "thrower-v4-atlas.png"
-    normalize_grid(heroine, 10, 4, (200, 200), anchor_rows=(0, 1, 2, 3))
+    normalize_grid(heroine, 10, 4, (200, 200), anchor_rows=(0, 1, 2, 3), force=True)
     normalize_grid(urban, 10, 3, (217, 241), anchor_rows=(0, 1, 2), isolate=True)
     normalize_grid(enemies, 10, 3, (217, 241), anchor_rows=(0, 1, 2), isolate=True)
     normalize_victory(victory)
@@ -217,8 +217,8 @@ def main():
     calibrate_attack_body(attacks_v5)
     normalize_grid(crouch, 4, 2, (256, 256), anchor_rows=(0, 1), force=True)
     normalize_contain_grid(crouch_idle, 4, 1, (256, 256), max_content=(232, 220))
-    normalize_uniform_grid(crouch_v2, 4, 2, list(range(8)), 4, 2, max_content=(238, 238))
-    normalize_uniform_grid(crouch_idle_v2, 4, 1, list(range(4)), 4, 1, max_content=(238, 220))
+    normalize_uniform_grid(crouch_v3, 4, 2, list(range(8)), 4, 2, max_content=(238, 238))
+    normalize_uniform_grid(crouch_idle_v3, 4, 1, list(range(4)), 4, 1, max_content=(238, 220))
     # Se descartan los dos extremos erróneos del generador (abanico sin guitarra) y
     # se mantienen diez tiempos repitiendo la aparición y la recuperación.
     normalize_uniform_grid(guitar_special_v2, 5, 2, [1, 1, 2, 3, 4, 5, 6, 7, 8, 8], 5, 2)
@@ -235,8 +235,8 @@ def main():
     audit(attacks_v5, 3, 2, (768, 512))
     audit(crouch, 4, 2, (1024, 512))
     audit(crouch_idle, 4, 1, (1024, 256))
-    audit(crouch_v2, 4, 2, (1024, 512))
-    audit(crouch_idle_v2, 4, 1, (1024, 256))
+    audit(crouch_v3, 4, 2, (1024, 512))
+    audit(crouch_idle_v3, 4, 1, (1024, 256))
     audit(guitar_special_v2, 5, 2, (1280, 512))
     audit(tuna, 2, 2, (512, 512))
     audit(tuna_animated, 4, 4, (1024, 1024))
