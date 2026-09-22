@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import { PLAYER_VISUAL_SCALE, PLAYER_REFERENCE_HEIGHT, NORMAL_ENEMY_REFERENCE_HEIGHT, SMALL_ENEMY_REFERENCE_HEIGHT, PROJECTILE_REFERENCE_SIZE } from "../dist/src/config.js";
-import { LEVELS } from "../dist/src/data/levels.js";
-import { Player } from "../dist/src/entities/Player.js";
-import { Enemy } from "../dist/src/entities/Enemy.js";
-import { Game } from "../dist/src/scenes/Game.js";
+import { PLAYER_VISUAL_SCALE, PLAYER_REFERENCE_HEIGHT, NORMAL_ENEMY_REFERENCE_HEIGHT, SMALL_ENEMY_REFERENCE_HEIGHT, PROJECTILE_REFERENCE_SIZE } from "../game/src/config.js";
+import { LEVELS } from "../game/src/data/levels.js";
+import { Player } from "../game/src/entities/Player.js";
+import { Enemy } from "../game/src/entities/Enemy.js";
+import { Game } from "../game/src/scenes/Game.js";
 
 const input={is:()=>false,tap:()=>false};
 const audio={sfx:()=>{},music:()=>{},stop:()=>{}};

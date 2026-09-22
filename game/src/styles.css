@@ -20,6 +20,8 @@
 .rotate-overlay{display:none}
 html.mobile-touch .play-screen{display:block;position:relative;overflow:hidden}
 html.mobile-touch .game-topbar{width:100%;padding:7px max(10px,env(safe-area-inset-left))}
+html.mobile-touch #fullscreen-btn{display:block}
+.top-actions{display:flex;gap:6px;justify-content:flex-end}.top-actions #fullscreen-btn{display:none}.top-actions #fullscreen-btn[hidden]{display:none!important}
 html.mobile-touch .canvas-wrap{width:min(100vw,calc((100vh - 64px)*16 / 9));height:auto;max-height:none;margin:0 auto;box-shadow:none}
 html.mobile-touch .desktop-controls{display:none}
 html.mobile-touch .touch-controls{display:flex;position:fixed;z-index:8;left:0;right:0;bottom:0;padding:10px max(14px,env(safe-area-inset-left)) max(12px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-right));justify-content:space-between;align-items:flex-end;pointer-events:none;touch-action:none}

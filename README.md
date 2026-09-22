@@ -1,6 +1,6 @@
 # La Dama de Lima
 
-Videojuego de plataformas 2D retro para navegador, inspirado en plazas, balcones y paisajes de Lima. Es una aplicación estática: abre `dist/index.html` mediante un servidor local o usa la versión publicada.
+Videojuego de plataformas 2D retro para navegador, inspirado en plazas, balcones y paisajes de Lima. El cliente del juego vive en `game/` y la aplicación Sites añade el ranking global persistente.
 
 ## Decisiones de diseño
 
@@ -13,7 +13,7 @@ Videojuego de plataformas 2D retro para navegador, inspirado en plazas, balcones
 
 ## Niveles configurables
 
-Los tres niveles se definen como datos en `dist/src/data/levels.js`:
+Los tres niveles se definen como datos en `game/src/data/levels.js`:
 
 1. Plaza Mayor — introducción a movimiento, peligros y enemigos.
 2. Puente de los Suspiros — plataformas más verticales y perseguidores.
@@ -24,7 +24,7 @@ Cada nivel declara ancho del mundo, paleta, plataformas, enemigos, peligros y me
 ## Arquitectura
 
 ```text
-dist/
+game/
   index.html
   assets/
     backgrounds/plaza-mayor.png
@@ -55,7 +55,7 @@ El audio actual es original y se sintetiza en tiempo real con Web Audio API: mú
 - Mundo: flores-meta, partículas, peligros, plataformas, faroles, palmeras y elementos de primer plano.
 - UI: corazones, resistencia, ataques disponibles, botones y cursores.
 
-Los sprites se cargan y recortan desde atlas reales. La herramienta `tools/normalize_sprites.py` audita 78 celdas y normaliza dimensiones enteras, transparencia y anclaje inferior. Las hitboxes permanecen separadas e invisibles; pueden mostrarse únicamente durante desarrollo cambiando `DEBUG_COLLISIONS` en `dist/src/config.js`.
+Los sprites se cargan y recortan desde atlas reales. La herramienta `tools/normalize_sprites.py` audita 78 celdas y normaliza dimensiones enteras, transparencia y anclaje inferior. Las hitboxes permanecen separadas e invisibles; pueden mostrarse únicamente durante desarrollo cambiando `DEBUG_COLLISIONS` en `game/src/config.js`.
 
 La pantalla de nivel completado y la de derrota son obligatorias: no incluyen cierre exterior ni botón X, por lo que el jugador debe elegir menú, siguiente nivel o reintentar.
 

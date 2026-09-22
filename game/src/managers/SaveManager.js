@@ -11,9 +11,25 @@ export class SaveManager {
     const progress = { ...this.data.progress, [level]: { score: best, completed: true, seconds } };
     const unlocked = Math.max(this.data.unlocked, Math.min(3, level + 1));
     const total = Object.values(progress).reduce((n, x) => n + (x.score || 0), 0);
-    const ranking = [...this.data.ranking, { name: this.data.name, score: total, levels: Object.keys(progress).length, time: Math.round(this.data.playTime + seconds), date: new Date().toISOString() }]
+    const entry = { name: this.data.name, score: total, levels: Object.keys(progress).length, time: Math.round(this.data.playTime + seconds), date: new Date().toISOString() };
+    const ranking = [...this.data.ranking, entry]
       .sort((a, b) => b.score - a.score || b.levels - a.levels || a.time - b.time).slice(0, 10);
-    return this.save({ score: total, record: Math.max(this.data.record, total), unlocked, progress, ranking });
+    const result = this.save({ score: total, record: Math.max(this.data.record, total), unlocked, progress, ranking });
+    void this.submitRanking(entry);
+    return result;
+  }
+  async getRanking() {
+    try {
+      const response = await fetch("/api/ranking", { cache: "no-store" });
+      if (!response.ok) throw new Error("Ranking no disponible");
+      const body = await response.json();
+      return Array.isArray(body.ranking) ? body.ranking : this.data.ranking;
+    } catch { return this.data.ranking; }
+  }
+  async submitRanking(entry) {
+    try {
+      await fetch("/api/ranking", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(entry), keepalive: true });
+    } catch { /* El progreso local sigue disponible sin conexión. */ }
   }
   export() { return new Blob([JSON.stringify(this.data, null, 2)], { type: "application/json" }); }
   async import(file) { const value = JSON.parse(await file.text()); if (!value || typeof value !== "object") throw new Error("Partida inválida"); this.data = { ...fresh(), ...value }; this.save(); }

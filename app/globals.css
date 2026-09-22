@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+html, body, main, iframe {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border: 0;
+  overflow: hidden;
+  background: #070b13;
+}
+
+iframe { display: block; }

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { Player } from "../dist/src/entities/Player.js";
-import { Enemy } from "../dist/src/entities/Enemy.js";
+import { Player } from "../game/src/entities/Player.js";
+import { Enemy } from "../game/src/entities/Enemy.js";
 
 const floorLevel={worldWidth:1200,platforms:[{x:0,y:486,w:1200,h:54}],hazards:[]};
 const audio={sfx(){}};

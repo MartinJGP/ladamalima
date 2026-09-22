@@ -1,1 +1,8 @@
-.sites-runtime/
+node_modules/
+.next/
+public/game/
+dist/
+.wrangler/
+*.tsbuildinfo
+.env*
+!.env.example

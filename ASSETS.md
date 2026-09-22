@@ -4,8 +4,8 @@ Modo utilizado: generación integrada de imágenes (`imagegen`) y normalización
 
 ## Protagonista y ataque de guitarra
 
-- `dist/assets/sprites/heroine-v3-atlas.png`: atlas RGBA de 10 × 4 celdas de 200 × 200 px. Incluye idle, caminar, correr, salto por fases, caída, aterrizaje, agacharse, daño, falda, abanico, guitarra y derrota.
-- `dist/assets/sprites/guitar-equipment.png`: guitarra pixel-art transparente para la espalda.
+- `game/assets/sprites/heroine-v3-atlas.png`: atlas RGBA de 10 × 4 celdas de 200 × 200 px. Incluye idle, caminar, correr, salto por fases, caída, aterrizaje, agacharse, daño, falda, abanico, guitarra y derrota.
+- `game/assets/sprites/guitar-equipment.png`: guitarra pixel-art transparente para la espalda.
 
 Prompt principal:
 
@@ -13,7 +13,7 @@ Prompt principal:
 
 ## Adversarios y obstáculos urbanos
 
-- `dist/assets/sprites/urban-enemy-atlas.png`: atlas RGBA de 10 × 3 celdas de 217 × 241 px. Contiene un adversario urbano ficticio en verde azulino, lanzador de piedras, proyectiles, impactos y bolardos dañados.
+- `game/assets/sprites/urban-enemy-atlas.png`: atlas RGBA de 10 × 3 celdas de 217 × 241 px. Contiene un adversario urbano ficticio en verde azulino, lanzador de piedras, proyectiles, impactos y bolardos dañados.
 - El personaje ficticio no reproduce escudos, insignias, nombres, rostros ni identidad de personas reales.
 
 Prompt principal:
@@ -24,7 +24,7 @@ La gama cromática verde azulino se estudió a partir de una referencia instituc
 
 ## Celebración final
 
-- `dist/assets/sprites/victory-v3-atlas.png`: tira RGBA de ocho celdas de 256 × 256 px, con pies anclados al mismo suelo.
+- `game/assets/sprites/victory-v3-atlas.png`: tira RGBA de ocho celdas de 256 × 256 px, con pies anclados al mismo suelo.
 
 Prompt final:
 
@@ -32,9 +32,9 @@ Prompt final:
 
 ## Recursos conservados
 
-- `dist/assets/sprites/enemy-atlas.png`: perseguidor y paloma animados.
-- `dist/assets/sprites/bouquet-atlas.png`: meta de flores amarillas.
-- `dist/assets/backgrounds/plaza-mayor.png`: panorama pixel-art original inspirado en Lima.
+- `game/assets/sprites/enemy-atlas.png`: perseguidor y paloma animados.
+- `game/assets/sprites/bouquet-atlas.png`: meta de flores amarillas.
+- `game/assets/backgrounds/plaza-mayor.png`: panorama pixel-art original inspirado en Lima.
 
 ## Auditoría
 
