@@ -12,7 +12,8 @@ export class AudioManager {
     if (!this.tracks) {
       this.tracks = {
         menu: new Audio("./assets/audio/menu-theme.mp3"),
-        game: new Audio("./assets/audio/capa-y-pandero.mp3")
+        game: new Audio("./assets/audio/capa-y-pandero.mp3"),
+        epilogue: new Audio("./assets/audio/te-mando-flores-remastered.mp3")
       };
       Object.values(this.tracks).forEach(track => {
         track.loop = true;
@@ -46,7 +47,7 @@ export class AudioManager {
     this.tone(map[name] || 300, name === "goal" ? .35 : .09, name === "fan" ? "sine" : "square", .07);
   }
   music(mode = "menu") {
-    this.desiredMode = mode === "menu" ? "menu" : "game";
+    this.desiredMode = ["menu", "game", "epilogue"].includes(mode) ? mode : "game";
     this.ensure();
     this.syncMusic();
   }

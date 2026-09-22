@@ -1,5 +1,5 @@
 export const ASSETS = {};
-const CACHE_VERSION = "campaign-scale-3";
+const CACHE_VERSION = "pardillaje-1";
 
 const SOURCES = {
   heroine: "./assets/sprites/heroine-tuna-normalized-atlas.png",
@@ -27,6 +27,11 @@ const SOURCES = {
   goalTuna: "./assets/sprites/goal-tuna-animated-atlas.png",
   bouquet: "./assets/sprites/bouquet-atlas.png",
   boss: "./assets/sprites/tuna-boss-atlas.png",
+  bossDialogue: "./assets/sprites/boss-dialogue-portraits.png",
+  epilogueShots: "./assets/sprites/epilogue-shots.png",
+  epilogueRunning: "./assets/sprites/epilogue-running.png",
+  epiloguePoses: "./assets/sprites/epilogue-poses.png",
+  epiloguePyramid: "./assets/sprites/epilogue-pyramid.png",
   regalia: "./assets/sprites/final-regalia-atlas.png",
   guitarItem: "./assets/sprites/guitar-equipment.png",
   lima: "./assets/backgrounds/plaza-mayor.png",

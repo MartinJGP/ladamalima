@@ -6,25 +6,57 @@ import { Boss } from "../entities/Boss.js";
 import { ASSETS, drawAtlasFrame } from "../managers/AssetManager.js";
 
 const overlap=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
+const BOSS_DIALOGUE=[
+  {speaker:"TUNO MAYOR",text:"Hasta aquí llegaste, tunera. Demuestra que mereces las cintas.",row:0},
+  {speaker:"LA DAMA",text:"No retrocederé. Mi música hablará por mí.",row:1}
+];
 
 export class Game {
   constructor(canvas,input,audio,save,events={}){
     this.canvas=canvas;this.ctx=canvas.getContext("2d");this.ctx.imageSmoothingEnabled=false;this.input=input;this.audio=audio;this.save=save;this.events=events;
+    this.canvas.addEventListener("pointerdown",()=>{if(this.dialogue)this.advanceDialogue();});
     this.raf=0;this.last=0;
   }
-  start(id){cancelAnimationFrame(this.raf);this.level=getLevel(id);this.boss=this.level.boss?new Boss({x:this.level.goal.x-720}):null;this.enemies=[...this.level.enemies.map(e=>new Enemy(e)),...(this.boss?[this.boss]:[])];this.player=new Player(this.input,this.audio,{costume:this.level.costume,abilities:this.level.abilities});this.camera=0;this.elapsed=0;this.score=0;this.paused=false;this.finished=false;this.defeating=false;this.defeatT=0;this.ended=false;this.victoryT=0;this.particles=[];this.projectiles=[];this.audio.music("game");this.last=performance.now();this.loop(this.last);}
+  start(id){cancelAnimationFrame(this.raf);this.level=getLevel(id);this.boss=this.level.boss?new Boss({x:this.level.goal.x-720}):null;this.enemies=[...this.level.enemies.map(e=>new Enemy(e)),...(this.boss?[this.boss]:[])];this.player=new Player(this.input,this.audio,{costume:this.level.costume,abilities:this.level.abilities});this.camera=0;this.elapsed=0;this.score=0;this.paused=false;this.finished=false;this.defeating=false;this.defeatT=0;this.ended=false;this.victoryT=0;this.dialogue=null;this.bossIntroSeen=false;this.introMessageT=0;this.particles=[];this.projectiles=[];this.audio.music("game");this.last=performance.now();this.loop(this.last);}
   stop(){this.ended=true;cancelAnimationFrame(this.raf);this.audio.stop();}
   loop=(now)=>{let dt=Math.min((now-this.last)/1000||0,1/30);this.last=now;this.update(dt);this.draw();this.input.clear();if(!this.ended)this.raf=requestAnimationFrame(this.loop);}
   update(dt){
+    if(this.dialogue){this.updateDialogue(dt);return;}
+    if(this.introMessageT>0){this.introMessageT=Math.max(0,this.introMessageT-dt);return;}
     if(this.input.tap("pause")){this.paused=!this.paused;this.events.pause?.(this.paused);} if(this.input.tap("restart"))return this.start(this.level.id); if(this.paused)return;
     if(this.finished){this.victoryT+=dt;this.player.setAnimation("victory",this.victoryT);this.spawnPetals();this.updateParticles(dt);if(this.victoryT>3.6)this.finish();return;}
     if(this.defeating){this.defeatT+=dt;this.player.updateDefeatPhysics(dt,this.level);this.player.setAnimation("defeat",this.defeatT);if(this.defeatT>1.05&&this.player.onGround)this.gameOver();return;}
     const onHurt=hp=>{this.events.hurt?.(hp);if(hp<=0&&!this.defeating){this.defeating=true;this.player.locked=true;this.player.animT=0;this.audio.stop();this.audio.sfx("defeat");}};
-    this.elapsed+=dt;this.player.update(dt,this.level,this.enemies,onHurt);this.enemies.forEach(e=>e.update(dt,this.player,this.level,source=>this.spawnRock(source)));this.updateProjectiles(dt,onHurt);this.updateParticles(dt);
+    this.elapsed+=dt;this.player.update(dt,this.level,this.enemies,onHurt);
+    if(this.boss&&!this.defeating&&!this.bossIntroSeen&&this.player.x+this.player.w>=this.boss.x-260){this.beginBossDialogue();return;}
+    this.blockBossExit();
+    this.enemies.forEach(e=>e.update(dt,this.player,this.level,source=>this.spawnRock(source)));this.updateProjectiles(dt,onHurt);this.updateParticles(dt);
     this.score=Math.max(0,Math.floor(this.player.x/8)+this.enemies.filter(e=>e.dead).length*250+(this.boss?.defeated?2500:0));
     const target=Math.max(0,Math.min(this.level.worldWidth-GAME.width,this.player.x-GAME.width*.34));this.camera+=(target-this.camera)*Math.min(1,dt*6);
     if(overlap(this.player.rect(),{x:this.level.goal.x-20,y:this.level.goal.y-15,w:118,h:125})&&(!this.boss||this.boss.defeated)){this.beginVictory();}
     this.events.hud?.({score:this.score,stamina:this.player.stamina,hp:this.player.hp,level:this.level.id,cooldowns:this.player.cooldowns,abilities:this.level.abilities,boss:this.boss&&!this.boss.defeated?{hp:this.boss.hp,maxHp:this.boss.maxHp}:null,time:this.elapsed});
+  }
+  bossGateX(){return this.level.goal.x-210;}
+  blockBossExit(){
+    if(!this.boss||this.boss.defeated)return;
+    const limit=this.bossGateX()-this.player.w;
+    if(this.player.x>limit){this.player.x=limit;this.player.vx=Math.min(0,this.player.vx);}
+  }
+  beginBossDialogue(){
+    this.bossIntroSeen=true;this.player.vx=0;this.dialogue={step:0,characters:0};
+    this.camera=Math.max(0,Math.min(this.level.worldWidth-GAME.width,this.player.x-GAME.width*.34));
+  }
+  updateDialogue(dt){
+    const line=BOSS_DIALOGUE[this.dialogue.step];
+    this.dialogue.characters=Math.min(line.text.length,this.dialogue.characters+dt*42);
+    if(this.input.tap("jump")||this.input.tap("skirt")||this.input.pressed?.has("Enter"))this.advanceDialogue();
+  }
+  advanceDialogue(){
+    if(!this.dialogue)return;
+    const line=BOSS_DIALOGUE[this.dialogue.step];
+    if(this.dialogue.characters<line.text.length){this.dialogue.characters=line.text.length;return;}
+    if(this.dialogue.step<BOSS_DIALOGUE.length-1){this.dialogue.step++;this.dialogue.characters=0;return;}
+    this.dialogue=null;this.introMessageT=2;this.audio.sfx("button");
   }
   finish(){if(this.ended)return;this.ended=true;cancelAnimationFrame(this.raf);this.audio.stop();const bonus=Math.max(0,Math.floor((this.level.timeBonus-this.elapsed)*10));const final=this.score+bonus+this.player.hp*300;this.save.complete(this.level.id,final,this.elapsed);this.events.complete?.({score:final,bonus,next:this.level.id<12?this.level.id+1:null,reward:this.level.reward,world:this.level.world,chapter:this.level.chapter});}
   gameOver(){if(this.ended)return;this.ended=true;cancelAnimationFrame(this.raf);this.audio.stop();this.events.gameOver?.();}
@@ -42,12 +74,30 @@ export class Game {
   spawnImpact(x,y){for(let i=0;i<5;i++)this.particles.push({x,y,vx:(Math.random()-.5)*90,vy:-30-Math.random()*55,t:.45,c:i%2?"#917765":"#d0b08a"});}
   spawnPetals(){if(Math.random()<.25)this.particles.push({x:this.player.x+20,y:this.player.y+10,vx:(Math.random()-.5)*100,vy:-70-Math.random()*80,t:1.4,c:Math.random()>.5?PALETTE.gold:PALETTE.red2});}
   updateParticles(dt){this.particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=180*dt;p.t-=dt;});this.particles=this.particles.filter(p=>p.t>0);}
-  draw(){const c=this.ctx;c.clearRect(0,0,GAME.width,GAME.height);this.drawWorld(c);this.drawGoal(c);this.enemies.forEach(e=>e.draw(c,this.camera));if(this.finished&&this.level.reward==="regalia")this.drawWornRegalia(c);if(this.player.crouched){this.player.draw(c,this.camera);this.drawProjectiles(c);}else{this.drawProjectiles(c);this.player.draw(c,this.camera);}this.particles.forEach(p=>{c.globalAlpha=Math.max(0,p.t);c.fillStyle=p.c;c.fillRect(Math.round(p.x-this.camera),Math.round(p.y),6,6);});c.globalAlpha=1;if(this.boss&&!this.boss.defeated)this.drawBossBar(c);if(this.finished)this.drawVictoryBanner(c);if(DEBUG_COLLISIONS)this.drawDebug(c);if(this.paused)this.overlay(c,"PAUSA","P / ESC para continuar");}
+  draw(){const c=this.ctx;c.clearRect(0,0,GAME.width,GAME.height);this.drawWorld(c);this.drawGoal(c);this.enemies.forEach(e=>e.draw(c,this.camera));if(this.finished&&this.level.reward==="regalia")this.drawWornRegalia(c);if(this.player.crouched){this.player.draw(c,this.camera);this.drawProjectiles(c);}else{this.drawProjectiles(c);this.player.draw(c,this.camera);}this.particles.forEach(p=>{c.globalAlpha=Math.max(0,p.t);c.fillStyle=p.c;c.fillRect(Math.round(p.x-this.camera),Math.round(p.y),6,6);});c.globalAlpha=1;if(this.boss&&!this.boss.defeated&&!this.dialogue&&!this.introMessageT)this.drawBossBar(c);if(this.finished)this.drawVictoryBanner(c);if(DEBUG_COLLISIONS)this.drawDebug(c);if(this.paused)this.overlay(c,"PAUSA","P / ESC para continuar");if(this.dialogue)this.drawBossDialogue(c);if(this.introMessageT>0)this.overlay(c,"Vence al Tuno","");}
   drawWorld(c){
     const [sky]=this.level.colors;c.fillStyle=sky;c.fillRect(0,0,GAME.width,GAME.height);
     const bg=ASSETS[this.level.background]||ASSETS.lima;if(bg){const shift=-(this.camera*.1%GAME.width);c.globalAlpha=.92;c.drawImage(bg,shift,-8,GAME.width,405);c.drawImage(bg,shift+GAME.width,-8,GAME.width,405);c.globalAlpha=1;}
-    for(const h of this.level.hazards){const count=Math.max(1,Math.ceil(h.w/42));for(let i=0;i<count;i++){const size=Math.min(58,h.w/count+18),frame=(i%3);drawAtlasFrame(c,ASSETS.urbanEnemies,{x:frame*217,y:482,w:217,h:241},{x:Math.round(h.x-this.camera+i*h.w/count-8),y:486-size,w:size,h:size});}}
+    for(const h of this.level.hazards){const count=Math.max(1,Math.ceil(h.w/42));for(let i=0;i<count;i++){const size=Math.min(50,h.w/count+14),frame=(i%3);drawAtlasFrame(c,ASSETS.urbanEnemies,{x:frame*217,y:482,w:217,h:241},{x:Math.round(h.x-this.camera+i*h.w/count-6),y:486-size,w:size,h:size});}}
     for(const p of this.level.platforms){const x=p.x-this.camera;if(x>GAME.width||x+p.w<0)continue;c.fillStyle=p.kind==="floor"?"#382b31":"#4b343a";c.fillRect(x,p.y,p.w,p.h);c.fillStyle=PALETTE.gold;c.fillRect(x,p.y,p.w,6);c.fillStyle="#7b626a";for(let b=8;b<p.w;b+=32){c.fillRect(x+b,p.y+15,22,7);c.fillStyle="#2b242b";c.fillRect(x+b+5,p.y+29,22,6);c.fillStyle="#7b626a";}}
+    if(this.boss&&!this.boss.defeated){const x=Math.round(this.bossGateX()-this.camera);if(x>-8&&x<GAME.width+8){c.fillStyle="#a92c4788";c.fillRect(x-4,272,8,214);c.fillStyle=PALETTE.gold;c.fillRect(x-2,272,4,214);}}
+  }
+  drawBossDialogue(c){
+    const line=BOSS_DIALOGUE[this.dialogue.step],bossSpeaking=line.row===0;
+    c.fillStyle="#05081199";c.fillRect(0,0,GAME.width,GAME.height);
+    c.fillStyle="#101a2d";c.fillRect(30,312,900,205);
+    c.strokeStyle=PALETTE.gold;c.lineWidth=4;c.strokeRect(30,312,900,205);
+    c.strokeStyle="#6e2638";c.lineWidth=2;c.strokeRect(37,319,886,191);
+    const image=ASSETS.bossDialogue;
+    if(image){const frameWidth=image.naturalWidth/2,frameHeight=image.naturalHeight/2;drawAtlasFrame(c,image,{x:frameWidth,y:line.row*frameHeight,w:frameWidth,h:frameHeight},{x:bossSpeaking?658:47,y:327,w:250,h:167});}
+    const textX=bossSpeaking?58:345,maxWidth=bossSpeaking?575:545;
+    c.textAlign="left";c.fillStyle=PALETTE.gold;c.font='15px "Press Start 2P", monospace';c.fillText(line.speaker,textX,352);
+    c.fillStyle=PALETTE.cream;c.font='13px "Press Start 2P", monospace';
+    const words=line.text.slice(0,Math.floor(this.dialogue.characters)).split(" ");let current="",lineY=387;
+    for(const word of words){const next=current?`${current} ${word}`:word;if(c.measureText(next).width>maxWidth&&current){c.fillText(current,textX,lineY);lineY+=28;current=word;}else current=next;}
+    if(current)c.fillText(current,textX,lineY);
+    c.fillStyle="#cbbd98";c.font='10px "Press Start 2P", monospace';
+    c.fillText("ESPACIO / TOCA PARA CONTINUAR",textX,494);
   }
   drawProjectiles(c){for(const p of this.projectiles)drawAtlasFrame(c,ASSETS.urbanEnemies,{x:p.frame*217,y:482,w:217,h:241},{x:Math.round(p.x-this.camera-PROJECTILE_REFERENCE_SIZE*.25),y:Math.round(p.y-PROJECTILE_REFERENCE_SIZE*.25),w:PROJECTILE_REFERENCE_SIZE*1.5,h:PROJECTILE_REFERENCE_SIZE*1.5},p.vx<0);}
   drawGoal(c){
@@ -83,6 +133,6 @@ export class Game {
     c.font='bold 27px "Press Start 2P", monospace';c.lineJoin="round";c.lineWidth=8;c.strokeStyle="#27171d";c.strokeText("Aupa Tuna",0,0);
     c.lineWidth=3;c.strokeStyle="#a8273d";c.strokeText("Aupa Tuna",0,0);c.fillStyle=PALETTE.cream;c.fillText("Aupa Tuna",0,0);c.restore();
   }
-  drawDebug(c){c.save();c.strokeStyle="#00ff90";c.lineWidth=2;for(const r of [this.player.rect(),...this.enemies.filter(e=>!e.dead).map(e=>e.rect()),...this.projectiles])c.strokeRect(r.x-this.camera,r.y,r.w,r.h);c.strokeStyle="#ff935e";for(const h of this.level.hazards)c.strokeRect(h.x-this.camera,436,h.w,50);if(this.player.attack&&this.player.attackIsActive()){const a=this.player.attackRect();c.strokeStyle="#ff3f80";c.strokeRect(a.x-this.camera,a.y,a.w,a.h);}c.restore();}
+  drawDebug(c){c.save();c.strokeStyle="#00ff90";c.lineWidth=2;for(const r of [this.player.rect(),...this.enemies.filter(e=>!e.dead).map(e=>e.rect()),...this.projectiles])c.strokeRect(r.x-this.camera,r.y,r.w,r.h);c.strokeStyle="#ff935e";for(const h of this.level.hazards)c.strokeRect(h.x+6-this.camera,451,h.w-12,35);if(this.player.attack&&this.player.attackIsActive()){const a=this.player.attackRect();c.strokeStyle="#ff3f80";c.strokeRect(a.x-this.camera,a.y,a.w,a.h);}c.restore();}
   overlay(c,title,sub){c.fillStyle="#08101bd9";c.fillRect(0,0,GAME.width,GAME.height);c.textAlign="center";c.fillStyle=PALETTE.gold;c.font="bold 38px monospace";c.fillText(title,GAME.width/2,245);c.fillStyle="#fff";c.font="18px monospace";c.fillText(sub,GAME.width/2,282);}
 }

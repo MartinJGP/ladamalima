@@ -39,7 +39,7 @@ function buildHazards(width, world, chapter) {
   const count = Math.min(2 + world + Math.floor((chapter - 1) / 3), 7);
   return Array.from({ length: count }, (_, index) => {
     const section = width / (count + 1);
-    return { x: Math.round(section * (index + 1) + ((chapter * 73 + index * 41) % 150) - 75), w: 70 + ((chapter + index * 17) % 65) };
+    return { x: Math.round(section * (index + 1) + ((chapter * 73 + index * 41) % 150) - 75), w: 64 + ((chapter + index * 17) % 48) };
   });
 }
 

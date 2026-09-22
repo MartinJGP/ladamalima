@@ -8,7 +8,7 @@ scale in Player.js.
 from colorsys import rgb_to_hsv
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageFilter
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -55,25 +55,242 @@ def bottom_center(output: Image.Image, sprite: Image.Image, column: int, row: in
     output.alpha_composite(sprite, (x, y))
 
 
-def darken_aspirant_red(image: Image.Image, columns: int, rows: int) -> None:
-    """Turn the aspirant's flower/costume red black, but keep held props readable."""
-    cell_width, cell_height = image.width // columns, image.height // rows
-    pixels = list(image.getdata())
-    for y in range(image.height):
-        local_y = y % cell_height
-        for x in range(image.width):
-            local_x = x % cell_width
-            # The flower and upper costume live around the upper body.  Red fan/
-            # pandero details outside this area remain props, not clothing.
-            if local_x > cell_width * .60 or local_y > cell_height * .70:
+def red_pixel(pixel: tuple[int, int, int, int]) -> bool:
+    red, green, blue, alpha = pixel
+    hue, saturation, value = rgb_to_hsv(red / 255, green / 255, blue / 255)
+    return alpha > ALPHA_CUTOFF and saturation > .45 and value > .20 and (hue < .04 or hue > .94)
+
+
+def restore_flower(target_name: str, reference_name: str, columns: int, rows: int) -> None:
+    """Copy the isolated red flower component, never a rectangular costume area."""
+    target = Image.open(SPRITES / target_name).convert("RGBA")
+    reference = Image.open(SPRITES / reference_name).convert("RGBA")
+    assert target.size == reference.size
+    cw, ch = target.width // columns, target.height // rows
+    for row in range(rows):
+        for column in range(columns):
+            box = (column * cw, row * ch, (column + 1) * cw, (row + 1) * ch)
+            ref = reference.crop(box)
+            dst = target.crop(box)
+            pixels = list(ref.getdata())
+            skin = []
+            for index, (red, green, blue, alpha) in enumerate(pixels):
+                if alpha <= ALPHA_CUTOFF or index // cw >= ch * .72:
+                    continue
+                hue, saturation, value = rgb_to_hsv(red / 255, green / 255, blue / 255)
+                if .035 < hue < .16 and saturation > .32 and value > .38:
+                    skin.append((index % cw, index // cw))
+            if not skin:
                 continue
-            index = y * image.width + x
-            red, green, blue, alpha = pixels[index]
-            hue, saturation, value = rgb_to_hsv(red / 255, green / 255, blue / 255)
-            if alpha and saturation > .55 and value > .30 and (hue < .035 or hue > .94):
-                shade = max(18, min(58, int(value * 58)))
-                pixels[index] = (shade, shade, shade + 4, alpha)
-    image.putdata(pixels)
+            face_top = min(y for _, y in skin)
+            face_left = min(x for x, y in skin if y < face_top + 28)
+            out = list(dst.getdata())
+            flower_mask = Image.new("L", (cw, ch))
+            mask_pixels = [0] * (cw * ch)
+            for index, pixel in enumerate(pixels):
+                x, y = index % cw, index // cw
+                if x < face_left + 12 and y < face_top + 38 and red_pixel(pixel) and out[index][3] > ALPHA_CUTOFF:
+                    target_red, target_green, target_blue, target_alpha = out[index]
+                    target_hue, target_saturation, target_value = rgb_to_hsv(target_red / 255, target_green / 255, target_blue / 255)
+                    if .035 < target_hue < .16 and target_saturation > .32 and target_value > .35:
+                        continue
+                    out[index] = (*pixels[index][:3], target_alpha)
+                    mask_pixels[index] = 255
+            flower_mask.putdata(mask_pixels)
+            grown = list(flower_mask.filter(ImageFilter.MaxFilter(7)).getdata())
+            for index, selected in enumerate(grown):
+                if not selected or mask_pixels[index]:
+                    continue
+                red, green, blue, alpha = out[index]
+                shade = max(red, green, blue)
+                if alpha > ALPHA_CUTOFF and 20 < shade < 130 and shade - min(red, green, blue) < 19:
+                    out[index] = (min(245, int(shade * 2 + 35)), max(8, int(shade * .28)), max(12, int(shade * .33)), alpha)
+            dst.putdata(out)
+            target.paste(dst, box[:2])
+    target.save(SPRITES / target_name, optimize=True)
+
+
+def color_gray_flowers(target_name: str, columns: int, rows: int) -> None:
+    """Catch gray flower frames whose source pose differs from the tuna reference."""
+    target = Image.open(SPRITES / target_name).convert("RGBA")
+    cw, ch = target.width // columns, target.height // rows
+    for row in range(rows):
+        for column in range(columns):
+            box = (column * cw, row * ch, (column + 1) * cw, (row + 1) * ch)
+            cell = target.crop(box)
+            pixels = list(cell.getdata())
+            seen = bytearray(cw * ch)
+            candidates = []
+            skin = []
+            for index, (red, green, blue, alpha) in enumerate(pixels):
+                if alpha <= ALPHA_CUTOFF or index // cw >= ch * .72:
+                    continue
+                hue, saturation, value = rgb_to_hsv(red / 255, green / 255, blue / 255)
+                if .035 < hue < .16 and saturation > .32 and value > .38:
+                    skin.append((index % cw, index // cw))
+            if not skin:
+                continue
+            face_top = min(y for _, y in skin)
+            face_left = min(x for x, y in skin if y < face_top + 28)
+            def gray(index: int) -> bool:
+                red, green, blue, alpha = pixels[index]
+                return alpha > ALPHA_CUTOFF and 35 < max(red, green, blue) < 155 and max(red, green, blue) - min(red, green, blue) < 20
+            for start in range(cw * ch):
+                if seen[start] or not gray(start):
+                    continue
+                seen[start] = 1
+                component, stack = [], [start]
+                while stack:
+                    index = stack.pop()
+                    component.append(index)
+                    x, y = index % cw, index // cw
+                    for ny in range(max(0, y - 1), min(ch, y + 2)):
+                        for nx in range(max(0, x - 1), min(cw, x + 2)):
+                            near = ny * cw + nx
+                            if not seen[near] and gray(near):
+                                seen[near] = 1
+                                stack.append(near)
+                xs = [index % cw for index in component]
+                ys = [index // cw for index in component]
+                width, height = max(xs) - min(xs) + 1, max(ys) - min(ys) + 1
+                center_x, center_y = (min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2
+                if 10 <= width <= 42 and 10 <= height <= 45 and 70 <= len(component) <= 1300 and center_x < face_left + 10 and abs(center_y - face_top) < 42:
+                    distance = abs(center_x - (face_left - 8)) + abs(center_y - (face_top + 6))
+                    candidates.append((distance, abs(width - height), -len(component), component))
+            if not candidates:
+                continue
+            component = min(candidates, key=lambda item: item[:3])[3]
+            for index in component:
+                red, green, blue, alpha = pixels[index]
+                shade = max(red, green, blue)
+                pixels[index] = (min(255, round(shade * 1.85)), round(shade * .25), round(shade * .29), alpha)
+            cell.putdata(pixels)
+            target.paste(cell, box[:2])
+    target.save(SPRITES / target_name, optimize=True)
+
+
+def paint_face_flower(target_name: str, columns: int, rows: int) -> None:
+    """Keep the existing dark flower texture, tinting only its round head ornament."""
+    target = Image.open(SPRITES / target_name).convert("RGBA")
+    cw, ch = target.width // columns, target.height // rows
+    for row in range(rows):
+        for column in range(columns):
+            box = (column * cw, row * ch, (column + 1) * cw, (row + 1) * ch)
+            cell = target.crop(box)
+            pixels = list(cell.getdata())
+            skin = []
+            for index, (red, green, blue, alpha) in enumerate(pixels):
+                if alpha <= ALPHA_CUTOFF or index // cw > ch * .73:
+                    continue
+                hue, saturation, value = rgb_to_hsv(red / 255, green / 255, blue / 255)
+                if .035 < hue < .16 and saturation > .34 and value > .50:
+                    skin.append((index % cw, index // cw))
+            if len(skin) < 20:
+                continue
+            top = min(y for _, y in skin)
+            left = min(x for x, y in skin if y < top + 27 * cw / MAIN_CELL)
+            unit = cw / MAIN_CELL
+            gray_points = []
+            for y in range(max(0, int(top - 10*unit)), min(ch, int(top + 44*unit))):
+                for x in range(max(0, int(left - 55*unit)), min(cw, int(left + 7*unit))):
+                    red, green, blue, alpha = pixels[y*cw+x]
+                    if alpha > ALPHA_CUTOFF and 24 <= max(red, green, blue) < 125 and max(red, green, blue)-min(red, green, blue) < 18:
+                        gray_points.append((x, y))
+            if not gray_points:
+                continue
+            search_radius = 10*unit
+            centers = [(x, y) for x, y in gray_points if x % max(1, int(3*unit)) == 0 and y % max(1, int(3*unit)) == 0]
+            if not centers:
+                centers = gray_points
+            center_x, center_y = max(centers, key=lambda point: (
+                sum((gx-point[0])**2+(gy-point[1])**2 <= search_radius**2 for gx, gy in gray_points)
+                - .02*(abs(point[0]-(left-23*unit))+abs(point[1]-(top+15*unit)))
+            ))
+            radius = 16 * unit
+            for y in range(max(0, int(center_y - radius)), min(ch, int(center_y + radius + 1))):
+                for x in range(max(0, int(center_x - radius)), min(cw, int(center_x + radius + 1))):
+                    if (x-center_x)**2+(y-center_y)**2 > radius**2:
+                        continue
+                    index = y*cw+x
+                    red, green, blue, alpha = pixels[index]
+                    if alpha <= ALPHA_CUTOFF or red > 125 or max(red, green, blue)-min(red, green, blue) > 17:
+                        continue
+                    shade = max(red, green, blue)
+                    if shade < 25:
+                        continue
+                    pixels[index] = (min(255, int(shade*2.25+35)), max(8, int(shade*.31)), max(12, int(shade*.38)), alpha)
+            cell.putdata(pixels)
+            target.paste(cell, box[:2])
+    target.save(SPRITES / target_name, optimize=True)
+
+
+def finish_main_flowers(target_name: str, aspirant: bool) -> None:
+    """Tint dark rosette pixels in the active movement frames, without touching clothing."""
+    target = Image.open(SPRITES / target_name).convert("RGBA")
+    for row in (0, 1):
+        for column in range(10):
+            box = (column * MAIN_CELL, row * MAIN_CELL, (column + 1) * MAIN_CELL, (row + 1) * MAIN_CELL)
+            cell = target.crop(box)
+            pixels = list(cell.getdata())
+            skin = []
+            for index, (red, green, blue, alpha) in enumerate(pixels):
+                if alpha <= ALPHA_CUTOFF or index // MAIN_CELL >= 145:
+                    continue
+                hue, saturation, value = rgb_to_hsv(red / 255, green / 255, blue / 255)
+                if .035 < hue < .16 and saturation > .34 and value > .50:
+                    skin.append((index % MAIN_CELL, index // MAIN_CELL))
+            if not skin:
+                continue
+            top = min(y for _, y in skin)
+            left = min(x for x, y in skin if y < top + 27)
+            offset_x, offset_y = (-16, 10) if aspirant or left <= 105 else (-35, 24)
+            if not aspirant and left <= 105:
+                offset_x, offset_y = -10, 8
+            center_x, center_y = left + offset_x, top + offset_y
+            for y in range(max(0, center_y - 14), min(MAIN_CELL, center_y + 15)):
+                for x in range(max(0, center_x - 14), min(MAIN_CELL, center_x + 15)):
+                    if (x-center_x)**2 + (y-center_y)**2 > 14**2:
+                        continue
+                    index = y*MAIN_CELL+x
+                    red, green, blue, alpha = pixels[index]
+                    shade = max(red, green, blue)
+                    if alpha <= ALPHA_CUTOFF or not 18 < shade < 120 or shade-min(red, green, blue) > 17:
+                        continue
+                    pixels[index] = (min(235, int(shade*2.1+35)), max(8, int(shade*.28)), max(12, int(shade*.33)), alpha)
+            cell.putdata(pixels)
+            target.paste(cell, box[:2])
+    target.save(SPRITES / target_name, optimize=True)
+
+
+def restore_novice_crouch_idle_flower() -> None:
+    target_name = "crouch-idle-novice-normalized-atlas.png"
+    target = Image.open(SPRITES / target_name).convert("RGBA")
+    reference = Image.open(SPRITES / "crouch-idle-tuna-normalized-atlas.png").convert("RGBA")
+    centers = [(67, 218), (65, 227), (65, 228), (66, 227)]
+    for column, (cx, cy) in enumerate(centers):
+        for y in range(cy-20, cy+21):
+            for x in range(cx-20, cx+21):
+                if (x-cx)**2+(y-cy)**2 > 20**2:
+                    continue
+                px = column*LARGE_CELL+x
+                red, green, blue, alpha = reference.getpixel((px, y))
+                original = target.getpixel((px, y))
+                if red_pixel((red, green, blue, alpha)) and original[3] > ALPHA_CUTOFF:
+                    target.putpixel((px, y), (red, green, blue, original[3]))
+    target.save(SPRITES / target_name, optimize=True)
+    # The last recline transition is a separate atlas frame.
+    target_name = "crouch-pandero-novice-normalized-atlas.png"
+    target = Image.open(SPRITES / target_name).convert("RGBA")
+    reference = Image.open(SPRITES / "crouch-pandero-tuna-normalized-atlas.png").convert("RGBA")
+    for y in range(256+217, 256+256):
+        for x in range(3*LARGE_CELL+44, 3*LARGE_CELL+85):
+            if (x-(3*LARGE_CELL+64))**2+(y-(256+237))**2 > 20**2:
+                continue
+            red, green, blue, alpha = reference.getpixel((x, y))
+            original = target.getpixel((x, y))
+            if red_pixel((red, green, blue, alpha)) and original[3] > ALPHA_CUTOFF:
+                target.putpixel((x, y), (red, green, blue, original[3]))
+    target.save(SPRITES / target_name, optimize=True)
 
 
 def restore_novice_props(target_name: str, reference_name: str, columns: int, rows: int) -> None:
@@ -100,12 +317,9 @@ def restore_novice_props(target_name: str, reference_name: str, columns: int, ro
             hue, saturation, value = rgb_to_hsv(ref_red / 255, ref_green / 255, ref_blue / 255)
             if saturation < .45 or value < .20 or not (hue < .04 or hue > .94):
                 continue
-            flower_limit = .55 if columns == 10 and (y // cell_height) == 0 else .82
-            flower = local_x < cell_width * .48 and local_y < cell_height * flower_limit
             has_fan = not (columns == 10 and (x // cell_width) >= 6)
-            fan = has_fan and local_x > cell_width * .62 and local_y < cell_height * .75
-            raised_fan = has_fan and local_x > cell_width * .38 and local_y < cell_height * .36
-            if flower or fan or raised_fan:
+            fan = has_fan and local_x > cell_width * .69 and local_y < cell_height * .70
+            if fan:
                 target_pixels[y * target.width + x] = (ref_red, ref_green, ref_blue, target_alpha)
     target.putdata(target_pixels)
     target.save(SPRITES / target_name, optimize=True)
@@ -319,7 +533,7 @@ def main() -> None:
     aspirant_crouch = Image.open(SPRITES / "crouch-pandero-aspirant-generated.png").convert("RGBA")
     aspirant_max = max(content(split_cell(aspirant_crouch, column, row, 4, 2)).height for row in range(2) for column in range(4))
     uniform_atlas("crouch-pandero-aspirant-generated.png", "crouch-pandero-aspirant-normalized-atlas.png", 4, 2,
-                  BASE_BODY_HEIGHT / aspirant_max, darken_aspirant=True)
+                  BASE_BODY_HEIGHT / aspirant_max)
 
     crouch_idle_ratio = 179 / 238
     uniform_atlas("crouch-idle-v3-atlas.png", "crouch-idle-tuna-normalized-atlas.png", 4, 1, crouch_idle_ratio)
@@ -327,7 +541,7 @@ def main() -> None:
     aspirant_idle = Image.open(SPRITES / "crouch-idle-aspirant-generated.png").convert("RGBA")
     aspirant_idle_max_width = max(content(split_cell(aspirant_idle, column, 0, 4, 1)).width for column in range(4))
     uniform_atlas("crouch-idle-aspirant-generated.png", "crouch-idle-aspirant-normalized-atlas.png", 4, 1,
-                  179 / aspirant_idle_max_width, darken_aspirant=True)
+                  179 / aspirant_idle_max_width)
 
     # Neutral dance poses equal the standing body height; raised arms remain movement, not scaling.
     victory_ratio = BASE_BODY_HEIGHT / 186
@@ -336,7 +550,7 @@ def main() -> None:
     aspirant_victory = Image.open(SPRITES / "victory-aspirant-generated.png").convert("RGBA")
     first_height = content(split_cell(aspirant_victory, 0, 0, 8, 1)).height
     uniform_atlas("victory-aspirant-generated.png", "victory-aspirant-normalized-atlas.png", 8, 1,
-                  BASE_BODY_HEIGHT / first_height, darken_aspirant=True)
+                  BASE_BODY_HEIGHT / first_height)
 
     correct_attack_body("attack-v5-atlas.png", "attack-tuna-normalized-atlas.png", 3)
     correct_attack_body("attack-novice-atlas.png", "attack-novice-normalized-atlas.png", 3)
@@ -353,7 +567,24 @@ def main() -> None:
     restore_novice_props("crouch-pandero-novice-normalized-atlas.png", "crouch-pandero-tuna-normalized-atlas.png", 4, 2)
     restore_novice_props("crouch-idle-novice-normalized-atlas.png", "crouch-idle-tuna-normalized-atlas.png", 4, 1)
     restore_novice_props("victory-novice-normalized-atlas.png", "victory-tuna-normalized-atlas.png", 8, 1)
-    restore_novice_run_flower()
+    for target, reference, columns, rows in (
+        ("heroine-novice-normalized-atlas.png", "heroine-tuna-normalized-atlas.png", 10, 4),
+        ("heroine-aspirant-normalized-atlas.png", "heroine-tuna-normalized-atlas.png", 10, 4),
+        ("attack-novice-normalized-atlas.png", "attack-tuna-normalized-atlas.png", 3, 2),
+        ("attack-aspirant-normalized-atlas.png", "attack-tuna-normalized-atlas.png", 3, 2),
+        ("crouch-pandero-novice-normalized-atlas.png", "crouch-pandero-tuna-normalized-atlas.png", 4, 2),
+        ("crouch-pandero-aspirant-normalized-atlas.png", "crouch-pandero-tuna-normalized-atlas.png", 4, 2),
+        ("crouch-idle-novice-normalized-atlas.png", "crouch-idle-tuna-normalized-atlas.png", 4, 1),
+        ("crouch-idle-aspirant-normalized-atlas.png", "crouch-idle-tuna-normalized-atlas.png", 4, 1),
+        ("victory-novice-normalized-atlas.png", "victory-tuna-normalized-atlas.png", 8, 1),
+        ("victory-aspirant-normalized-atlas.png", "victory-tuna-normalized-atlas.png", 8, 1),
+        ("defeat-novice-normalized-atlas.png", "defeat-tuna-normalized-atlas.png", 2, 1),
+        ("defeat-aspirant-normalized-atlas.png", "defeat-tuna-normalized-atlas.png", 2, 1),
+    ):
+        restore_flower(target, reference, columns, rows)
+    finish_main_flowers("heroine-aspirant-normalized-atlas.png", True)
+    finish_main_flowers("heroine-novice-normalized-atlas.png", False)
+    restore_novice_crouch_idle_flower()
 
     expected = [
         ("heroine-aspirant-normalized-atlas.png", 10, 4, MAIN_CELL),

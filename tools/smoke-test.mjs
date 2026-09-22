@@ -19,6 +19,9 @@ assert.deepEqual(pngSize("sprites/heroine-aspirant-atlas.png"),[2000,800],"el at
 assert.deepEqual(pngSize("sprites/heroine-novice-atlas.png"),[2000,800],"el atlas pardilla debe conservar su cuadrícula 10x4");
 assert.deepEqual(pngSize("backgrounds/barranco.png"),[2079,756]);
 assert.deepEqual(pngSize("backgrounds/trujillo.png"),[2079,756]);
+assert.deepEqual(pngSize("sprites/boss-dialogue-portraits.png"),[1536,1024],"el diálogo debe tener cuatro retratos en un atlas 2x2");
+for(const scene of ["shots","running","poses","pyramid"])assert.deepEqual(pngSize(`sprites/epilogue-${scene}.png`),[1536,1024],`el epílogo ${scene} debe tener cuatro cuadros 2x2`);
+assert.ok(readFileSync(assetPath("audio/te-mando-flores-remastered.mp3")).length>1000000,"la canción del epílogo debe estar incluida");
 
 assert.equal(PLAYER_VISUAL_SCALE,.95);
 assert.equal(200*ATLAS_TO_WORLD,PLAYER_REFERENCE_HEIGHT*1.18*PLAYER_VISUAL_SCALE);
@@ -89,6 +92,35 @@ assert.equal(touchInput.is("left"),true,"RUN táctil debe respetar la dirección
 listeners.pointerup({preventDefault:()=>{},pointerId:2});
 
 const boss=new Boss({x:700});const bossLevel={worldWidth:1600,platforms:[{x:0,y:486,w:1600,h:54}]};
+const bossGuitar=new Boss({x:700});
+bossGuitar.attackT=1;bossGuitar.attackDuration=2.35;bossGuitar.attackType="guitar";
+assert.equal(bossGuitar.hit(5,1,"guitar"),true);
+assert.equal(bossGuitar.hp,bossGuitar.maxHp*.75,"la guitarra debe quitar exactamente un cuarto de la vida del jefe");
+assert.equal(bossGuitar.attackT,0,"el golpe especial debe interrumpir el ataque del jefe");
+assert.ok(bossGuitar.stunT>2,"el jefe debe quedar aturdido");
+bossGuitar.update(1/60,{x:650,y:404,w:42,h:82},bossLevel);
+assert.equal(bossGuitar.canDamage(),false,"el jefe aturdido no puede atacar");
+for(let frame=0;frame<18;frame++)bossGuitar.update(1/60,{x:650,y:404,w:42,h:82},bossLevel);
+assert.equal(bossGuitar.state,"stun","la reacción de impacto debe dar paso a la animación aturdida");
+assert.ok([0,8].includes(bossGuitar.frameIndex()),"el aturdimiento usa fotogramas alternos y estrellas");
+const slowBoss=new Boss({x:700});
+slowBoss.attackCooldown=0;
+slowBoss.update(1/60,{x:650,y:404,w:42,h:82},bossLevel);
+assert.equal(slowBoss.attackDuration,2.35,"la animación de guitarra del jefe debe ser más lenta");
+assert.ok(slowBoss.attackCooldown>5,"la guitarra del jefe necesita una recarga mayor");
+const arena=Object.create(Game.prototype);
+arena.level={goal:{x:1000},worldWidth:1600};arena.boss={defeated:false};arena.player={x:850,w:42,vx:120};arena.audio=audio;
+arena.blockBossExit();
+assert.equal(arena.player.x,arena.bossGateX()-arena.player.w,"el grupo final queda inaccesible durante el combate");
+arena.boss.defeated=true;arena.player.x=850;arena.blockBossExit();
+assert.equal(arena.player.x,850,"al derrotar al jefe se abre el camino");
+arena.beginBossDialogue();
+assert.equal(arena.dialogue.step,0);
+arena.advanceDialogue();arena.advanceDialogue();
+assert.equal(arena.dialogue.step,1,"la protagonista responde después del Tuno Mayor");
+arena.advanceDialogue();arena.advanceDialogue();
+assert.equal(arena.dialogue,null);
+assert.equal(arena.introMessageT,2,"tras hablar aparece Vence al Tuno antes de reanudar");
 boss.hit(99,1);for(let frame=0;frame<180&&!boss.defeated;frame++)boss.update(1/60,{x:650,y:404,w:42,h:82},bossLevel);
 assert.equal(boss.defeated,true,"el jefe final debe caer al suelo antes de permitir avanzar");
 assert.equal(boss.y+boss.h,486,"el jefe derrotado debe quedar apoyado en el suelo");
