@@ -1,6 +1,6 @@
 # La Dama de Lima
 
-Videojuego de plataformas 2D retro para navegador, inspirado en plazas, balcones y paisajes de Lima. El cliente del juego vive en `game/` y la aplicación Sites añade el ranking global persistente.
+Videojuego de plataformas 2D retro para navegador, inspirado en plazas, balcones y paisajes de Lima. El cliente estático vive en `game/` y `api/ranking.js` añade un ranking global persistente preparado para Vercel Functions y Neon Postgres.
 
 ## Decisiones de diseño
 
@@ -9,7 +9,7 @@ Videojuego de plataformas 2D retro para navegador, inspirado en plazas, balcones
 - **Sprite lógico de la protagonista:** hitbox estable de 42 × 82 px y atlas normalizado a celdas de 200 × 200 px con un único `PLAYER_VISUAL_SCALE`.
 - **Controles:** A/D o flechas para moverse; Shift para correr; Espacio/W/↑ para saltar; S/↓ para agacharse; J/Z para falda; K/X para abanico; L/C para guitarra; P/Esc pausa; R reinicia.
 - **Mecánicas:** aceleración, desaceleración, gravedad, plataformas, cámara lateral, resistencia, tres ataques con ventanas de impacto y cooldown, daño, tres vidas, lanzadores con proyectiles esquivables, enemigos, bolardos dañados, meta animada, puntuación y victoria.
-- **Progreso:** nombre, puntuación, nivel desbloqueado, vidas, récord, progreso, ranking y audio guardados en `localStorage`; exportación/importación JSON incluida.
+- **Progreso:** el estado de la partida permanece en memoria durante la sesión; no utiliza `localStorage`. El ranking se guarda en Neon mediante `/api/ranking` y la exportación/importación JSON continúa disponible.
 
 ## Niveles configurables
 
@@ -44,6 +44,11 @@ game/
     managers/InputManager.js
     managers/SaveManager.js
     scenes/Game.js
+api/
+  ranking.js              # función de Vercel para el ranking global
+scripts/
+  build-static.mjs        # genera vercel-dist/
+vercel.json
 ```
 
 El audio actual es original y se sintetiza en tiempo real con Web Audio API: música de menú, gameplay y victoria; efectos de salto, ataques, golpe, daño, botones y meta.
@@ -59,12 +64,23 @@ Los sprites se cargan y recortan desde atlas reales. La herramienta `tools/norma
 
 La pantalla de nivel completado y la de derrota son obligatorias: no incluyen cierre exterior ni botón X, por lo que el jugador debe elegir menú, siguiente nivel o reintentar.
 
-## Ejecución local
+## Preparación para Vercel
 
-Desde esta carpeta:
+1. Crea o conecta una base Neon desde **Vercel Marketplace → Storage**.
+2. Comprueba que Vercel haya añadido `DATABASE_URL` al proyecto. Para desarrollo local también puedes copiar `.env.example` a `.env.local` y reemplazar el valor.
+3. Importa el repositorio en Vercel. La configuración incluida ejecutará `npm run build`, publicará `vercel-dist/` y desplegará `api/ranking.js` como Vercel Function.
+
+La tabla `leaderboard` se crea automáticamente en la primera solicitud. No es necesario ejecutar SQL manualmente.
+
+## Verificación local
+
+Para verificar el frontend estático:
 
 ```powershell
-python -m http.server 4173 --directory dist
+npm install
+npm run verify
+npm run build
+python -m http.server 4173 --directory vercel-dist
 ```
 
-Abre `http://127.0.0.1:4173/`.
+Abre `http://127.0.0.1:4173/`. En esta vista puramente estática el ranking usa el respaldo de la sesión; para probar también la función y Neon usa `npx vercel dev` con `DATABASE_URL` configurada.

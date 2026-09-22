@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build",
+  "outputDirectory": "vercel-dist",
+  "cleanUrls": false,
+  "trailingSlash": false,
+  "functions": {
+    "api/ranking.js": {
+      "maxDuration": 10
+    }
+  }
+}

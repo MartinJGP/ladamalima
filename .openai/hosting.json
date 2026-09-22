@@ -1,5 +1,6 @@
 {
   "project_id": "appgprj_6ab1368191b081919d194c832e29d502",
-  "d1": "DB",
-  "r2": null
+  "static": {
+    "directory": "game"
+  }
 }

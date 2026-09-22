@@ -1,11 +1,9 @@
-const KEY = "la-dama-de-lima-save-v1";
 const fresh = () => ({ name: "", score: 0, lives: 3, unlocked: 1, currentLevel: 1, record: 0, progress: {}, playTime: 0, ranking: [], audio: { music: true, sfx: true, volume: 0.55 } });
 
 export class SaveManager {
-  constructor() { this.data = this.load(); }
-  load() { try { const stored=JSON.parse(localStorage.getItem(KEY) || "{}"); return { ...fresh(), ...stored, audio:{...fresh().audio,...stored.audio} }; } catch { return fresh(); } }
-  save(patch = {}) { this.data = { ...this.data, ...patch }; localStorage.setItem(KEY, JSON.stringify(this.data)); return this.data; }
-  newGame(name) { this.data = { ...fresh(), name: name.trim().slice(0, 18), audio: this.data.audio }; return this.save(); }
+  constructor() { this.data = fresh(); }
+  save(patch = {}) { this.data = { ...this.data, ...patch }; return this.data; }
+  newGame(name) { this.data = { ...fresh(), name: name.trim().slice(0, 18), audio: this.data.audio, ranking: this.data.ranking }; return this.save(); }
   complete(level, score, seconds) {
     const best = Math.max(this.data.progress[level]?.score || 0, score);
     const progress = { ...this.data.progress, [level]: { score: best, completed: true, seconds } };
@@ -28,8 +26,9 @@ export class SaveManager {
   }
   async submitRanking(entry) {
     try {
-      await fetch("/api/ranking", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(entry), keepalive: true });
-    } catch { /* El progreso local sigue disponible sin conexión. */ }
+      const response = await fetch("/api/ranking", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(entry), keepalive: true });
+      if (!response.ok) throw new Error("No se pudo guardar la puntuación");
+    } catch { /* La sesión puede continuar aunque el backend no esté disponible. */ }
   }
   export() { return new Blob([JSON.stringify(this.data, null, 2)], { type: "application/json" }); }
   async import(file) { const value = JSON.parse(await file.text()); if (!value || typeof value !== "object") throw new Error("Partida inválida"); this.data = { ...fresh(), ...value }; this.save(); }
