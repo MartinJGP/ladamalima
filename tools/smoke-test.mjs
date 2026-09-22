@@ -5,6 +5,7 @@ import { Player } from "../game/src/entities/Player.js";
 import { Enemy } from "../game/src/entities/Enemy.js";
 import { Game } from "../game/src/scenes/Game.js";
 import { SaveManager } from "../game/src/managers/SaveManager.js";
+import { InputManager } from "../game/src/managers/InputManager.js";
 
 const input={is:()=>false,tap:()=>false};
 const audio={sfx:()=>{},music:()=>{},stop:()=>{}};
@@ -55,5 +56,18 @@ await saves.submitFinalRanking("Martin");
 assert.equal(rankingRequests,1,"el ranking debe publicarse solo tras aceptar al final de la partida");
 await saves.submitFinalRanking("Martin");
 assert.equal(rankingRequests,1,"una partida no debe publicarse dos veces");
+
+const touchInput=Object.assign(Object.create(InputManager.prototype),{down:new Set(),pressed:new Set(),keyboardDown:new Set(),touchRefs:new Map(),lastDirection:"ArrowRight"});
+const listeners={};const runButton={dataset:{key:"ShiftLeft",autoForward:"true"},classList:{add:()=>{},remove:()=>{}},addEventListener:(name,fn)=>listeners[name]=fn,setPointerCapture:()=>{},hasPointerCapture:()=>false};
+touchInput.bindTouch({querySelectorAll:()=>[runButton]});
+listeners.pointerdown({preventDefault:()=>{},pointerId:1});
+assert.equal(touchInput.is("run"),true,"RUN táctil debe activar la carrera");
+assert.equal(touchInput.is("right"),true,"RUN táctil debe avanzar hacia donde mira el personaje");
+listeners.pointerup({preventDefault:()=>{},pointerId:1});
+assert.equal(touchInput.is("run"),false,"soltar RUN debe detener la carrera");
+assert.equal(touchInput.is("right"),false,"soltar RUN debe detener el avance automático");
+touchInput.lastDirection="ArrowLeft";listeners.pointerdown({preventDefault:()=>{},pointerId:2});
+assert.equal(touchInput.is("left"),true,"RUN táctil debe respetar la dirección hacia la izquierda");
+listeners.pointerup({preventDefault:()=>{},pointerId:2});
 
 console.log("OK: escala, combate, anclajes, lanzamiento y evasión validados.");

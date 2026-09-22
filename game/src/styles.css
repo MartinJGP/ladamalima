@@ -19,18 +19,22 @@
 .creator-credit{font-size:18px;color:var(--cream)}.creator-credit strong{color:var(--gold)}
 .rotate-overlay{display:none}
 html.mobile-touch .play-screen{display:block;position:relative;overflow:hidden}
+html.mobile-touch .menu-screen{display:block;height:100%;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain;padding:58px 0 30px;-webkit-overflow-scrolling:touch}
+html.mobile-touch .menu-card{width:min(500px,94vw);margin:0 auto;padding:16px}
+html.mobile-touch .sound-panel{position:fixed}
 html.mobile-touch .game-topbar{width:100%;padding:7px max(10px,env(safe-area-inset-left))}
 html.mobile-touch #fullscreen-btn{display:block}
 .top-actions{display:flex;gap:6px;justify-content:flex-end}.top-actions #fullscreen-btn{display:none}.top-actions #fullscreen-btn[hidden]{display:none!important}
 html.mobile-touch .canvas-wrap{width:min(100vw,calc((100vh - 64px)*16 / 9));height:auto;max-height:none;margin:0 auto;box-shadow:none}
 html.mobile-touch .desktop-controls{display:none}
 html.mobile-touch .touch-controls{display:flex;position:fixed;z-index:8;left:0;right:0;bottom:0;padding:10px max(14px,env(safe-area-inset-left)) max(12px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-right));justify-content:space-between;align-items:flex-end;pointer-events:none;touch-action:none}
-html.mobile-touch .touch-left,html.mobile-touch .touch-right{display:flex;align-items:flex-end;gap:clamp(8px,2vw,16px);pointer-events:none}
-html.mobile-touch .touch-right{display:grid;grid-template-columns:repeat(3,minmax(48px,64px));grid-template-areas:"run . jump" ". crouch special" "skirt fan .";gap:clamp(7px,1.6vw,13px)}
+html.mobile-touch .touch-left,html.mobile-touch .touch-right{align-items:flex-end;gap:clamp(8px,2vw,16px);pointer-events:none}
+html.mobile-touch .touch-left{display:grid;grid-template-columns:repeat(2,minmax(56px,76px));grid-template-areas:"run run" "left right";gap:clamp(7px,1.6vw,13px)}
+html.mobile-touch .touch-right{display:grid;grid-template-columns:repeat(3,minmax(48px,64px));grid-template-areas:"jump crouch special" "skirt fan .";gap:clamp(7px,1.6vw,13px)}
 html.mobile-touch .touch-controls button{pointer-events:auto;width:clamp(48px,10vw,66px);height:clamp(46px,10vw,62px);padding:4px;border:2px solid #d2b66b;border-radius:12px;background:#14213ad9;color:#fff;font-size:clamp(13px,2.5vw,18px);box-shadow:0 3px 0 #4b2a36;opacity:.82;touch-action:none;user-select:none;-webkit-user-select:none}
 html.mobile-touch .touch-controls button.is-down{background:#b22e4b;opacity:1;transform:translateY(2px)}
-html.mobile-touch .touch-run{grid-area:run}.touch-jump{grid-area:jump}.touch-right button[data-key="KeyS"]{grid-area:crouch}.touch-special{grid-area:special}.touch-right button[data-key="KeyJ"]{grid-area:skirt}.touch-right button[data-key="KeyK"]{grid-area:fan}
-html.mobile-touch .touch-left button{width:clamp(56px,12vw,76px);font-size:clamp(20px,4vw,28px)}
+html.mobile-touch .touch-run{grid-area:run;width:100%;font-size:clamp(11px,2.2vw,15px)}.touch-left-move{grid-area:left}.touch-right-move{grid-area:right}.touch-jump{grid-area:jump}.touch-right button[data-key="KeyS"]{grid-area:crouch}.touch-special{grid-area:special}.touch-right button[data-key="KeyJ"]{grid-area:skirt}.touch-right button[data-key="KeyK"]{grid-area:fan}
+html.mobile-touch .touch-left button:not(.touch-run){width:clamp(56px,12vw,76px);font-size:clamp(20px,4vw,28px)}
 html.mobile-portrait .play-screen .rotate-overlay{display:flex;position:fixed;z-index:30;inset:0;background:#080d18f5;color:var(--cream);align-items:center;justify-content:center;flex-direction:column;gap:14px;text-align:center;padding:28px;font-family:"Press Start 2P",monospace}
 html.mobile-portrait .rotate-overlay strong{font-size:clamp(18px,5vw,28px);color:var(--gold);line-height:1.45}
 html.mobile-portrait .rotate-overlay span{font-size:13px;color:#d7d9e2}
