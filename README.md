@@ -9,7 +9,7 @@ Videojuego de plataformas 2D retro para navegador, inspirado en plazas, balcones
 - **Sprite lógico de la protagonista:** hitbox estable de 42 × 82 px y atlas normalizado a celdas de 200 × 200 px con un único `PLAYER_VISUAL_SCALE`.
 - **Controles:** A/D o flechas para moverse; Shift para correr; Espacio/W/↑ para saltar; S/↓ para agacharse; J/Z para falda; K/X para abanico; L/C para guitarra; P/Esc pausa; R reinicia.
 - **Mecánicas:** aceleración, desaceleración, gravedad, plataformas, cámara lateral, resistencia, tres ataques con ventanas de impacto y cooldown, daño, tres vidas, lanzadores con proyectiles esquivables, enemigos, bolardos dañados, meta animada, puntuación y victoria.
-- **Progreso:** el estado de la partida permanece en memoria durante la sesión; no utiliza `localStorage`. El ranking se guarda en Neon mediante `/api/ranking` y la exportación/importación JSON continúa disponible.
+- **Progreso:** el estado de la partida permanece en memoria durante la sesión; no utiliza `localStorage`. El ranking se guarda en Neon mediante `/api/ranking` y puede exportarse como JSON.
 
 ## Niveles configurables
 

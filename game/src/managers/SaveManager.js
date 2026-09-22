@@ -31,5 +31,4 @@ export class SaveManager {
     } catch { /* La sesión puede continuar aunque el backend no esté disponible. */ }
   }
   export() { return new Blob([JSON.stringify(this.data, null, 2)], { type: "application/json" }); }
-  async import(file) { const value = JSON.parse(await file.text()); if (!value || typeof value !== "object") throw new Error("Partida inválida"); this.data = { ...fresh(), ...value }; this.save(); }
 }
