@@ -1,24 +1,42 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { PLAYER_VISUAL_SCALE, PLAYER_REFERENCE_HEIGHT, NORMAL_ENEMY_REFERENCE_HEIGHT, SMALL_ENEMY_REFERENCE_HEIGHT, PROJECTILE_REFERENCE_SIZE } from "../game/src/config.js";
-import { LEVELS, getLevel } from "../game/src/data/levels.js";
-import { Player } from "../game/src/entities/Player.js";
+import { LEVELS, WORLDS, getLevel } from "../game/src/data/levels.js";
+import { Player, ATLAS_TO_WORLD } from "../game/src/entities/Player.js";
 import { Enemy } from "../game/src/entities/Enemy.js";
 import { Game } from "../game/src/scenes/Game.js";
 import { SaveManager } from "../game/src/managers/SaveManager.js";
 import { InputManager } from "../game/src/managers/InputManager.js";
+import { Boss } from "../game/src/entities/Boss.js";
 
 const input={is:()=>false,tap:()=>false};
 const audio={sfx:()=>{},music:()=>{},stop:()=>{}};
 
-assert.equal(PLAYER_VISUAL_SCALE,1);
+const assetPath=relative=>fileURLToPath(new URL(`../game/assets/${relative}`,import.meta.url));
+const pngSize=relative=>{const png=readFileSync(assetPath(relative));return[png.readUInt32BE(16),png.readUInt32BE(20)];};
+assert.deepEqual(pngSize("sprites/heroine-aspirant-atlas.png"),[2000,800],"el atlas aspirante debe conservar su cuadrícula 10x4");
+assert.deepEqual(pngSize("sprites/heroine-novice-atlas.png"),[2000,800],"el atlas pardilla debe conservar su cuadrícula 10x4");
+assert.deepEqual(pngSize("backgrounds/barranco.png"),[2079,756]);
+assert.deepEqual(pngSize("backgrounds/trujillo.png"),[2079,756]);
+
+assert.equal(PLAYER_VISUAL_SCALE,.95);
+assert.equal(200*ATLAS_TO_WORLD,PLAYER_REFERENCE_HEIGHT*1.18*PLAYER_VISUAL_SCALE);
+assert.equal(256*ATLAS_TO_WORLD/(200*ATLAS_TO_WORLD),256/200,"todos los atlas deben usar la misma escala de píxel");
 assert.ok(PLAYER_REFERENCE_HEIGHT>NORMAL_ENEMY_REFERENCE_HEIGHT);
 assert.ok(NORMAL_ENEMY_REFERENCE_HEIGHT>SMALL_ENEMY_REFERENCE_HEIGHT);
 assert.ok(SMALL_ENEMY_REFERENCE_HEIGHT>PROJECTILE_REFERENCE_SIZE);
 assert.ok(LEVELS.every(level=>level.enemies.some(enemy=>enemy.type==="thrower")));
+assert.equal(WORLDS.length,3,"la campaña debe tener tres mundos");
+assert.equal(LEVELS.length,30,"cada mundo debe tener diez capítulos");
+assert.deepEqual(LEVELS.filter(level=>level.chapter===10).map(level=>level.reward),["fan","guitar","regalia"]);
+assert.equal(LEVELS[0].abilities.fan,false);assert.equal(LEVELS[10].abilities.fan,true);assert.equal(LEVELS[10].abilities.guitar,false);assert.equal(LEVELS[20].abilities.guitar,true);
+assert.ok(LEVELS[10].worldWidth>LEVELS[0].worldWidth&&LEVELS[20].worldWidth>LEVELS[10].worldWidth,"cada mundo debe ser más largo que el anterior");
 const clonedLevel=getLevel(1);clonedLevel.platforms[0].x=999;
 assert.notEqual(LEVELS[0].platforms[0].x,999,"el nivel debe clonarse sin depender de structuredClone");
 
 const player=new Player(input,audio),feet=player.y+player.h;
+player.anim="jump";player.animT=2;player.setAnim("fall");assert.equal(player.animT,0,"cada transición de pose debe empezar en su primer frame");
 player.setCrouched(true);
 assert.equal(player.y+player.h,feet,"agacharse debe conservar el anclaje de pies");
 assert.equal(player.h,player.crouchH);
@@ -50,7 +68,7 @@ assert.equal(projectileTest(true),3,"la piedra debe pasar por encima al agachars
 
 const saves=new SaveManager();saves.newGame();let rankingRequests=0;
 globalThis.fetch=async()=>{rankingRequests++;return new Response(JSON.stringify({ok:true}),{status:201,headers:{"content-type":"application/json"}});};
-saves.complete(1,1000,20);saves.complete(2,1200,25);saves.complete(3,1500,30);
+for(let level=1;level<=30;level++)saves.complete(level,1000+level*20,20+level);
 assert.equal(rankingRequests,0,"completar niveles no debe publicar el ranking automáticamente");
 await saves.submitFinalRanking("Martin");
 assert.equal(rankingRequests,1,"el ranking debe publicarse solo tras aceptar al final de la partida");
@@ -69,5 +87,10 @@ assert.equal(touchInput.is("right"),false,"soltar RUN debe detener el avance aut
 touchInput.lastDirection="ArrowLeft";listeners.pointerdown({preventDefault:()=>{},pointerId:2});
 assert.equal(touchInput.is("left"),true,"RUN táctil debe respetar la dirección hacia la izquierda");
 listeners.pointerup({preventDefault:()=>{},pointerId:2});
+
+const boss=new Boss({x:700});const bossLevel={worldWidth:1600,platforms:[{x:0,y:486,w:1600,h:54}]};
+boss.hit(99,1);for(let frame=0;frame<180&&!boss.defeated;frame++)boss.update(1/60,{x:650,y:404,w:42,h:82},bossLevel);
+assert.equal(boss.defeated,true,"el jefe final debe caer al suelo antes de permitir avanzar");
+assert.equal(boss.y+boss.h,486,"el jefe derrotado debe quedar apoyado en el suelo");
 
 console.log("OK: escala, combate, anclajes, lanzamiento y evasión validados.");

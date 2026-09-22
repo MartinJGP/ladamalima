@@ -1,25 +1,25 @@
 # La Dama de Lima
 
-Videojuego de plataformas 2D retro para navegador, inspirado en plazas, balcones y paisajes de Lima. El cliente estático vive en `game/` y `api/ranking.js` añade un ranking global persistente preparado para Vercel Functions y Neon Postgres.
+Videojuego de plataformas 2D retro para navegador, ambientado en Lima, Barranco y Trujillo. El cliente estático vive en `game/` y `api/ranking.js` añade un ranking global persistente preparado para Vercel Functions y Neon Postgres.
 
 ## Decisiones de diseño
 
 - **Stack:** Canvas 2D + JavaScript ES Modules + Web Audio API. No necesita dependencias ni compilación, mantiene 60 FPS con delta time y es fácil de extender.
 - **Resolución lógica:** 960 × 540, escalada de forma responsiva.
 - **Sprite lógico de la protagonista:** hitbox estable de 42 × 82 px y atlas normalizado a celdas de 200 × 200 px con un único `PLAYER_VISUAL_SCALE`.
-- **Controles:** A/D o flechas para moverse; Shift para correr; Espacio/W/↑ para saltar; S/↓ para agacharse; J/Z para falda; K/X para abanico; L/C para guitarra; P/Esc pausa; R reinicia.
-- **Mecánicas:** aceleración, desaceleración, gravedad, plataformas, cámara lateral, resistencia, tres ataques con ventanas de impacto y cooldown, daño, tres vidas, lanzadores con proyectiles esquivables, enemigos, bolardos dañados, meta animada, puntuación y victoria.
+- **Controles:** A/D o flechas para moverse; Shift para correr; Espacio/W/↑ para saltar; S/↓ para agacharse; J/Z para ataque 1 —patada elegante de la Aspirante o falda en los demás trajes—; K/X para abanico; L/C para guitarra; P/Esc pausa; R reinicia.
+- **Mecánicas:** aceleración, desaceleración, gravedad, plataformas, cámara lateral, resistencia, habilidades desbloqueables con ventanas de impacto y cooldown, daño, tres vidas, lanzadores con proyectiles esquivables, enemigos, jefe final, metas animadas, puntuación y victoria.
 - **Progreso:** el estado de la partida permanece en memoria durante la sesión; no utiliza `localStorage`. El ranking global se guarda en Neon mediante `/api/ranking`.
 
-## Niveles configurables
+## Campaña configurable
 
-Los tres niveles se definen como datos en `game/src/data/levels.js`:
+La campaña de 30 capítulos se define como datos en `game/src/data/levels.js`:
 
-1. Plaza Mayor — introducción a movimiento, peligros y enemigos.
-2. Puente de los Suspiros — plataformas más verticales y perseguidores.
-3. Huaca al Amanecer — secuencias más exigentes y combinación de peligros.
+1. **Lima (1–10):** traje de aspirante y patada elegante con abanico como ataque 1. El capítulo 10 desbloquea el ataque de abanico independiente.
+2. **Barranco (11–20):** traje de pardilla, recorridos más largos y falda + abanico. El capítulo 20 entrega la guitarra.
+3. **Trujillo (21–30):** traje tunero completo y las tres habilidades. El capítulo 30 incluye al tuno jefe, la entrega de cintas y parches y el baile final.
 
-Cada nivel declara ancho del mundo, paleta, plataformas, enemigos, peligros y meta; añadir otro nivel no requiere duplicar la lógica del juego.
+Los capítulos se desbloquean en orden. Cada uno declara ancho, dificultad, plataformas, enemigos, peligros y meta; los recorridos aumentan progresivamente de longitud entre mundos.
 
 ## Arquitectura
 
@@ -28,7 +28,13 @@ game/
   index.html
   assets/
     backgrounds/plaza-mayor.png
+    backgrounds/barranco.png
+    backgrounds/trujillo.png
     sprites/heroine-v3-atlas.png
+    sprites/heroine-aspirant-atlas.png
+    sprites/heroine-novice-atlas.png
+    sprites/tuna-boss-atlas.png
+    sprites/final-regalia-atlas.png
     sprites/urban-enemy-atlas.png
     sprites/victory-v3-atlas.png
     sprites/guitar-equipment.png
@@ -40,6 +46,7 @@ game/
     data/levels.js
     entities/Player.js
     entities/Enemy.js
+    entities/Boss.js
     managers/AudioManager.js
     managers/InputManager.js
     managers/SaveManager.js
@@ -62,7 +69,7 @@ El audio actual es original y se sintetiza en tiempo real con Web Audio API: mú
 
 Los sprites se cargan y recortan desde atlas reales. La herramienta `tools/normalize_sprites.py` audita 78 celdas y normaliza dimensiones enteras, transparencia y anclaje inferior. Las hitboxes permanecen separadas e invisibles; pueden mostrarse únicamente durante desarrollo cambiando `DEBUG_COLLISIONS` en `game/src/config.js`.
 
-La pantalla de nivel completado y la de derrota son obligatorias: no incluyen cierre exterior ni botón X, por lo que el jugador debe elegir menú, siguiente nivel o reintentar.
+Las pantallas intermedias de capítulo completado y derrota no se pueden cerrar accidentalmente. Al completar la aventura, el envío al ranking global es opcional y la persona puede omitirlo para volver al menú.
 
 ## Preparación para Vercel
 

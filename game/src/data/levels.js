@@ -1,34 +1,84 @@
-const floor = (w) => ({ x: 0, y: 486, w, h: 54, kind: "floor" });
+const floor = width => ({ x: 0, y: 486, w: width, h: 54, kind: "floor" });
 
-export const LEVELS = [
+export const WORLDS = [
   {
-    id: 1, name: "Plaza Mayor", subtitle: "Faroles entre la garúa", worldWidth: 3650,
-    colors: ["#77849f", "#d8aa43", "#6d7c57"], timeBonus: 180,
-    platforms: [floor(3650), {x:430,y:405,w:190,h:28},{x:760,y:350,w:170,h:28},{x:1070,y:418,w:240,h:28},{x:1510,y:380,w:150,h:28},{x:1820,y:325,w:190,h:28},{x:2210,y:405,w:220,h:28},{x:2620,y:350,w:170,h:28},{x:2940,y:300,w:180,h:28},{x:3260,y:390,w:170,h:28}],
-    enemies: [{x:420,type:"thrower"},{x:680,type:"guard"},{x:1340,type:"pigeon"},{x:2050,type:"guard"},{x:2780,type:"pigeon"}], hazards: [{x:870,w:82},{x:2440,w:95}], goal: {x:3440,y:365}
+    id: 1, name: "Lima", subtitle: "El inicio de la aspirante", background: "lima", costume: "aspirant",
+    colors: ["#77849f", "#d8aa43", "#6d7c57"], baseWidth: 3650, widthStep: 100,
+    abilities: { skirt: true, fan: false, guitar: false }, reward: "fan",
+    chapters: ["Plaza Mayor", "Jirón de la Unión", "Balcones de Lima", "Plaza San Martín", "Parque de la Exposición", "Quinta Heeren", "Rímac Antiguo", "Alameda de los Descalzos", "Cerro San Cristóbal", "Palacio Municipal"]
   },
   {
-    id: 2, name: "Puente de los Suspiros", subtitle: "Madera, flores y faroles", worldWidth: 4050,
-    colors: ["#5c6881", "#c6813d", "#39726b"], timeBonus: 220,
-    platforms: [floor(4050),{x:350,y:395,w:170,h:25},{x:650,y:328,w:150,h:25},{x:960,y:388,w:200,h:25},{x:1270,y:310,w:135,h:25},{x:1540,y:370,w:170,h:25},{x:1870,y:290,w:180,h:25},{x:2210,y:390,w:130,h:25},{x:2490,y:325,w:165,h:25},{x:2820,y:260,w:140,h:25},{x:3120,y:345,w:200,h:25},{x:3450,y:285,w:150,h:25},{x:3720,y:390,w:160,h:25}],
-    enemies: [{x:560,type:"guard"},{x:1100,type:"pursuer"},{x:1460,type:"thrower"},{x:1750,type:"pigeon"},{x:2380,type:"guard"},{x:2760,type:"thrower"},{x:3060,type:"pursuer"}], hazards: [{x:810,w:140},{x:2050,w:150},{x:3330,w:105}], goal: {x:3860,y:365}
+    id: 2, name: "Barranco", subtitle: "La etapa de pardilla", background: "barranco", costume: "novice",
+    colors: ["#64758b", "#c68542", "#486d66"], baseWidth: 4700, widthStep: 120,
+    abilities: { skirt: true, fan: true, guitar: false }, reward: "guitar",
+    chapters: ["Plaza de Barranco", "Biblioteca Municipal", "Bajada de Baños", "Puente de los Suspiros", "Ermita de Barranco", "Malecón Souza", "Pasaje Chabuca", "Parque Federico Villarreal", "Acantilados", "Noche de Serenata"]
   },
   {
-    id: 3, name: "Huaca al Amanecer", subtitle: "Piedra, altura y memoria", worldWidth: 4450,
-    colors: ["#405070", "#b47645", "#887b50"], timeBonus: 260,
-    platforms: [floor(4450),{x:330,y:400,w:140,h:24},{x:600,y:330,w:130,h:24},{x:870,y:255,w:145,h:24},{x:1170,y:350,w:115,h:24},{x:1400,y:280,w:170,h:24},{x:1730,y:390,w:120,h:24},{x:2010,y:315,w:130,h:24},{x:2280,y:235,w:160,h:24},{x:2620,y:340,w:130,h:24},{x:2890,y:270,w:125,h:24},{x:3150,y:390,w:145,h:24},{x:3440,y:310,w:150,h:24},{x:3740,y:245,w:140,h:24},{x:4050,y:360,w:190,h:24}],
-    enemies: [{x:520,type:"pursuer"},{x:1080,type:"pigeon"},{x:1390,type:"thrower"},{x:1600,type:"guard"},{x:2180,type:"pursuer"},{x:2750,type:"pigeon"},{x:3040,type:"thrower"},{x:3370,type:"guard"},{x:3900,type:"pursuer"}], hazards: [{x:740,w:120},{x:1290,w:100},{x:1850,w:150},{x:2460,w:145},{x:3300,w:130}], goal: {x:4250,y:335}
+    id: 3, name: "Trujillo", subtitle: "La consagración tunera", background: "trujillo", costume: "tuna",
+    colors: ["#7295b5", "#e1a843", "#65744d"], baseWidth: 5400, widthStep: 140,
+    abilities: { skirt: true, fan: true, guitar: true }, reward: "regalia",
+    chapters: ["Plazuela El Recreo", "Jirón Pizarro", "Casa Urquiaga", "Palacio Iturregui", "Muralla de Trujillo", "Plazuela Iquitos", "Casonas de Primavera", "Atrio de la Catedral", "Monumento a la Libertad", "La Última Serenata"]
   }
 ];
 
+function buildPlatforms(width, world, chapter) {
+  const count = 7 + world + Math.ceil(chapter / 2);
+  const usable = width - 760;
+  const platforms = [floor(width)];
+  for (let index = 0; index < count; index++) {
+    const wave = (index * 47 + chapter * 29 + world * 17) % 5;
+    const x = 330 + Math.round((index + 0.35) * usable / count);
+    const y = 410 - wave * 34 - (index % 3 === 2 ? 18 : 0);
+    const w = 125 + ((index * 31 + chapter * 13) % 95);
+    platforms.push({ x, y: Math.max(248, y), w, h: 24 + (index % 2) * 3 });
+  }
+  return platforms;
+}
+
+function buildHazards(width, world, chapter) {
+  const count = Math.min(2 + world + Math.floor((chapter - 1) / 3), 7);
+  return Array.from({ length: count }, (_, index) => {
+    const section = width / (count + 1);
+    return { x: Math.round(section * (index + 1) + ((chapter * 73 + index * 41) % 150) - 75), w: 70 + ((chapter + index * 17) % 65) };
+  });
+}
+
+function buildEnemies(width, world, chapter) {
+  const types = ["guard", "pigeon", "pursuer", "thrower"];
+  const count = 3 + world + Math.ceil(chapter / 2);
+  const start = 520;
+  const span = width - 1050;
+  return Array.from({ length: count }, (_, index) => ({
+    x: Math.round(start + span * (index + 0.55) / count),
+    type: types[(index + chapter + world) % types.length]
+  }));
+}
+
+function createLevel(world, chapter) {
+  const id = (world.id - 1) * 10 + chapter;
+  const worldWidth = world.baseWidth + (chapter - 1) * world.widthStep;
+  const isWorldFinal = chapter === 10;
+  return {
+    id, world: world.id, chapter, name: world.chapters[chapter - 1], worldName: world.name,
+    subtitle: `${world.subtitle} · Capítulo ${chapter}/10`, background: world.background, costume: world.costume,
+    abilities: { ...world.abilities }, reward: isWorldFinal ? world.reward : "flowers",
+    colors: [...world.colors], worldWidth, timeBonus: Math.round(worldWidth / 17 + chapter * 7),
+    platforms: buildPlatforms(worldWidth, world.id, chapter),
+    enemies: buildEnemies(worldWidth, world.id, chapter),
+    hazards: buildHazards(worldWidth, world.id, chapter),
+    goal: { x: worldWidth - 210, y: 365 }, boss: world.id === 3 && chapter === 10
+  };
+}
+
+export const LEVELS = WORLDS.flatMap(world => Array.from({ length: 10 }, (_, index) => createLevel(world, index + 1)));
+
 export function getLevel(id) {
-  const level = LEVELS.find(x => x.id === id) || LEVELS[0];
+  const level = LEVELS.find(item => item.id === id) || LEVELS[0];
   return {
     ...level,
-    colors: [...level.colors],
+    abilities: { ...level.abilities }, colors: [...level.colors],
     platforms: level.platforms.map(platform => ({ ...platform })),
     enemies: level.enemies.map(enemy => ({ ...enemy })),
-    hazards: level.hazards.map(hazard => ({ ...hazard })),
-    goal: { ...level.goal }
+    hazards: level.hazards.map(hazard => ({ ...hazard })), goal: { ...level.goal }
   };
 }

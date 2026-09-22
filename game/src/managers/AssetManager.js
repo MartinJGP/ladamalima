@@ -1,18 +1,37 @@
 export const ASSETS = {};
+const CACHE_VERSION = "campaign-scale-3";
 
 const SOURCES = {
-  heroine: "./assets/sprites/heroine-v3-atlas.png",
+  heroine: "./assets/sprites/heroine-tuna-normalized-atlas.png",
+  heroineAspirant: "./assets/sprites/heroine-aspirant-normalized-atlas.png",
+  heroineNovice: "./assets/sprites/heroine-novice-normalized-atlas.png",
   enemies: "./assets/sprites/enemy-atlas.png",
   urbanEnemies: "./assets/sprites/urban-enemy-atlas.png",
   thrower: "./assets/sprites/thrower-v4-atlas.png",
-  victory: "./assets/sprites/victory-v3-atlas.png",
-  attacks: "./assets/sprites/attack-v5-atlas.png",
-  guitarSpecial: "./assets/sprites/guitar-special-v2-atlas.png",
-  crouch: "./assets/sprites/crouch-pandero-v3-atlas.png",
-  crouchIdle: "./assets/sprites/crouch-idle-v3-atlas.png",
+  victory: "./assets/sprites/victory-tuna-normalized-atlas.png",
+  victoryAspirant: "./assets/sprites/victory-aspirant-normalized-atlas.png",
+  victoryNovice: "./assets/sprites/victory-novice-normalized-atlas.png",
+  defeat: "./assets/sprites/defeat-tuna-normalized-atlas.png",
+  defeatAspirant: "./assets/sprites/defeat-aspirant-normalized-atlas.png",
+  defeatNovice: "./assets/sprites/defeat-novice-normalized-atlas.png",
+  attacks: "./assets/sprites/attack-tuna-normalized-atlas.png",
+  attacksAspirant: "./assets/sprites/attack-aspirant-normalized-atlas.png",
+  attacksNovice: "./assets/sprites/attack-novice-normalized-atlas.png",
+  guitarSpecial: "./assets/sprites/guitar-special-normalized-atlas.png",
+  crouch: "./assets/sprites/crouch-pandero-tuna-normalized-atlas.png",
+  crouchAspirant: "./assets/sprites/crouch-pandero-aspirant-normalized-atlas.png",
+  crouchNovice: "./assets/sprites/crouch-pandero-novice-normalized-atlas.png",
+  crouchIdle: "./assets/sprites/crouch-idle-tuna-normalized-atlas.png",
+  crouchIdleAspirant: "./assets/sprites/crouch-idle-aspirant-normalized-atlas.png",
+  crouchIdleNovice: "./assets/sprites/crouch-idle-novice-normalized-atlas.png",
   goalTuna: "./assets/sprites/goal-tuna-animated-atlas.png",
   bouquet: "./assets/sprites/bouquet-atlas.png",
-  background: "./assets/backgrounds/plaza-mayor.png"
+  boss: "./assets/sprites/tuna-boss-atlas.png",
+  regalia: "./assets/sprites/final-regalia-atlas.png",
+  guitarItem: "./assets/sprites/guitar-equipment.png",
+  lima: "./assets/backgrounds/plaza-mayor.png",
+  barranco: "./assets/backgrounds/barranco.png",
+  trujillo: "./assets/backgrounds/trujillo.png"
 };
 
 export async function preloadAssets() {
@@ -20,7 +39,7 @@ export async function preloadAssets() {
     const image = new Image();
     image.onload = () => { ASSETS[key] = image; resolve(); };
     image.onerror = () => reject(new Error(`No se pudo cargar ${src}`));
-    image.src = src;
+    image.src = `${src}?v=${CACHE_VERSION}`;
   })));
   return ASSETS;
 }

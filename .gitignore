@@ -8,3 +8,4 @@ dist/
 !.env.example
 .vercel/
 vercel-dist/
+game/assets/sprites/*-generated.png

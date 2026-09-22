@@ -7,7 +7,7 @@ export class SaveManager {
   complete(level, score, seconds) {
     const best = Math.max(this.data.progress[level]?.score || 0, score);
     const progress = { ...this.data.progress, [level]: { score: best, completed: true, seconds } };
-    const unlocked = Math.max(this.data.unlocked, Math.min(3, level + 1));
+    const unlocked = Math.max(this.data.unlocked, Math.min(30, level + 1));
     const total = Object.values(progress).reduce((n, x) => n + (x.score || 0), 0);
     const playTime = this.data.playTime + seconds;
     return this.save({ score: total, record: Math.max(this.data.record, total), unlocked, progress, playTime });
@@ -29,7 +29,9 @@ export class SaveManager {
     const cleanName = String(name || "").trim().replace(/\s+/g, " ").slice(0, 18);
     if (!cleanName) throw new Error("Escribe un nombre para guardar la puntuación.");
     if (this.data.rankingSubmitted) return { ok: true, duplicate: true };
-    const entry = { name: cleanName, score: this.data.score, levels: Object.keys(this.data.progress).length, time: Math.round(this.data.playTime) };
+    const completedLevels = Object.keys(this.data.progress).length;
+    if (completedLevels < 30) throw new Error("Completa los 30 capítulos antes de guardar en el ranking.");
+    const entry = { name: cleanName, score: this.data.score, levels: completedLevels, time: Math.round(this.data.playTime) };
     await this.submitRanking(entry);
     this.save({ name: cleanName, rankingSubmitted: true });
     return { ok: true };
