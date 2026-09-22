@@ -2,9 +2,31 @@ import { neon } from "@neondatabase/serverless";
 
 const responseHeaders = { "cache-control": "no-store, max-age=0" };
 
+function connectionString() {
+  return process.env.DATABASE_URL
+    || process.env.POSTGRES_URL
+    || process.env.NEON_DATABASE_URL
+    || process.env.DATABASE_URL_UNPOOLED
+    || "";
+}
+
 function database() {
-  if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL no está configurada");
-  return neon(process.env.DATABASE_URL);
+  const url = connectionString();
+  if (!url) {
+    const error = new Error("No hay una variable de conexión configurada");
+    error.code = "DATABASE_URL_MISSING";
+    throw error;
+  }
+  return neon(url);
+}
+
+function unavailable(error, operation) {
+  const code = error?.code === "DATABASE_URL_MISSING" ? "DATABASE_URL_MISSING" : "DATABASE_CONNECTION_FAILED";
+  console.error(`ranking ${operation} [${code}]`, error);
+  const message = code === "DATABASE_URL_MISSING"
+    ? "Falta DATABASE_URL en el entorno de Producción de Vercel."
+    : "No se pudo conectar con la base de datos del ranking.";
+  return Response.json({ error: message, code, connected: false }, { status: 503, headers: responseHeaders });
 }
 
 async function ensureTable(sql) {
@@ -26,10 +48,9 @@ export async function GET() {
       FROM leaderboard
       ORDER BY score DESC, levels DESC, time ASC, created_at ASC
       LIMIT 20`;
-    return Response.json({ ranking }, { headers: responseHeaders });
+    return Response.json({ ranking, connected: true, provider: "neon" }, { headers: responseHeaders });
   } catch (error) {
-    console.error("ranking GET", error);
-    return Response.json({ error: "Ranking no disponible" }, { status: 503, headers: responseHeaders });
+    return unavailable(error, "GET");
   }
 }
 
@@ -56,7 +77,6 @@ export async function POST(request) {
     )`;
     return Response.json({ ok: true }, { status: 201, headers: responseHeaders });
   } catch (error) {
-    console.error("ranking POST", error);
-    return Response.json({ error: "No se pudo guardar la puntuación" }, { status: 503, headers: responseHeaders });
+    return unavailable(error, "POST");
   }
 }

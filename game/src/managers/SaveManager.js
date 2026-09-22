@@ -17,18 +17,16 @@ export class SaveManager {
     return result;
   }
   async getRanking() {
-    try {
-      const response = await fetch("/api/ranking", { cache: "no-store" });
-      if (!response.ok) throw new Error("Ranking no disponible");
-      const body = await response.json();
-      return Array.isArray(body.ranking) ? body.ranking : this.data.ranking;
-    } catch { return this.data.ranking; }
+    const response = await fetch("/api/ranking", { cache: "no-store" });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.error || "No se pudo conectar con la base de datos.");
+    if (!Array.isArray(body.ranking)) throw new Error("La respuesta del ranking no es válida.");
+    return body.ranking;
   }
   async submitRanking(entry) {
     try {
       const response = await fetch("/api/ranking", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(entry), keepalive: true });
       if (!response.ok) throw new Error("No se pudo guardar la puntuación");
-    } catch { /* La sesión puede continuar aunque el backend no esté disponible. */ }
+    } catch (error) { console.error("No se pudo guardar la puntuación global", error); }
   }
-  export() { return new Blob([JSON.stringify(this.data, null, 2)], { type: "application/json" }); }
 }

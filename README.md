@@ -9,7 +9,7 @@ Videojuego de plataformas 2D retro para navegador, inspirado en plazas, balcones
 - **Sprite lógico de la protagonista:** hitbox estable de 42 × 82 px y atlas normalizado a celdas de 200 × 200 px con un único `PLAYER_VISUAL_SCALE`.
 - **Controles:** A/D o flechas para moverse; Shift para correr; Espacio/W/↑ para saltar; S/↓ para agacharse; J/Z para falda; K/X para abanico; L/C para guitarra; P/Esc pausa; R reinicia.
 - **Mecánicas:** aceleración, desaceleración, gravedad, plataformas, cámara lateral, resistencia, tres ataques con ventanas de impacto y cooldown, daño, tres vidas, lanzadores con proyectiles esquivables, enemigos, bolardos dañados, meta animada, puntuación y victoria.
-- **Progreso:** el estado de la partida permanece en memoria durante la sesión; no utiliza `localStorage`. El ranking se guarda en Neon mediante `/api/ranking` y puede exportarse como JSON.
+- **Progreso:** el estado de la partida permanece en memoria durante la sesión; no utiliza `localStorage`. El ranking global se guarda en Neon mediante `/api/ranking`.
 
 ## Niveles configurables
 
@@ -67,8 +67,8 @@ La pantalla de nivel completado y la de derrota son obligatorias: no incluyen ci
 ## Preparación para Vercel
 
 1. Crea o conecta una base Neon desde **Vercel Marketplace → Storage**.
-2. Comprueba que Vercel haya añadido `DATABASE_URL` al proyecto. Para desarrollo local también puedes copiar `.env.example` a `.env.local` y reemplazar el valor.
-3. Importa el repositorio en Vercel. La configuración incluida ejecutará `npm run build`, publicará `vercel-dist/` y desplegará `api/ranking.js` como Vercel Function.
+2. Comprueba que Vercel haya añadido `DATABASE_URL` al entorno **Production** del proyecto. También se admiten `POSTGRES_URL`, `NEON_DATABASE_URL` y `DATABASE_URL_UNPOOLED`.
+3. Importa el repositorio en Vercel o vuelve a desplegarlo después de cambiar variables. La configuración incluida ejecutará `npm run build`, publicará `vercel-dist/` y desplegará `api/ranking.js` como Vercel Function.
 
 La tabla `leaderboard` se crea automáticamente en la primera solicitud. No es necesario ejecutar SQL manualmente.
 
@@ -83,4 +83,4 @@ npm run build
 python -m http.server 4173 --directory vercel-dist
 ```
 
-Abre `http://127.0.0.1:4173/`. En esta vista puramente estática el ranking usa el respaldo de la sesión; para probar también la función y Neon usa `npx vercel dev` con `DATABASE_URL` configurada.
+Abre `http://127.0.0.1:4173/`. En esta vista puramente estática el ranking indicará que no hay conexión; para probar también la función y Neon usa `npx vercel dev` con `DATABASE_URL` configurada.

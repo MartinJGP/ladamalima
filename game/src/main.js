@@ -55,7 +55,19 @@ function closeModal(w){w.remove();}
 
 function showLevels(){const cards=LEVELS.map(l=>{const locked=l.id>save.data.unlocked,best=save.data.progress[l.id]?.score||0;return `<button class="level-card" data-level="${l.id}" ${locked?"disabled":""}><b>0${l.id}</b><span>${l.name}</span><small>${locked?"BLOQUEADO":best?`MEJOR ${best}`:"DISPONIBLE"}</small></button>`;}).join("");const w=modal("Seleccionar nivel",`<div class="level-grid">${cards}</div>`,`VOLVER`,closeModal);w.querySelectorAll("[data-level]:not(:disabled)").forEach(b=>b.onclick=()=>startGame(+b.dataset.level));}
 
-async function showRanking(){const w=modal("Ranking global",`<p class="muted">Puntuaciones compartidas entre todos los jugadores.</p><div class="table-wrap"><table><thead><tr><th>#</th><th>NOMBRE</th><th>PUNTOS</th><th>NIVELES</th><th>TIEMPO</th></tr></thead><tbody><tr><td colspan="5">Cargando ranking…</td></tr></tbody></table></div><div class="save-tools"><button id="export-save">EXPORTAR JSON</button></div>`);w.querySelector("#export-save").onclick=exportSave;const ranking=await save.getRanking();if(!w.isConnected)return;w.querySelector("tbody").innerHTML=ranking.length?ranking.map((r,i)=>`<tr><td>${i+1}</td><td>${safe(r.name)}</td><td>${r.score}</td><td>${r.levels}/3</td><td>${formatTime(r.time)}</td></tr>`).join(""):`<tr><td colspan="5">Aún no hay marcas. Completa un nivel.</td></tr>`;}
+async function showRanking(){
+  const w=modal("Ranking global",`<p class="muted ranking-status" role="status">Conectando con el ranking global…</p><div class="table-wrap"><table><thead><tr><th>#</th><th>NOMBRE</th><th>PUNTOS</th><th>NIVELES</th><th>TIEMPO</th></tr></thead><tbody><tr><td colspan="5">Cargando puntuaciones…</td></tr></tbody></table></div>`);
+  try{
+    const ranking=await save.getRanking();
+    if(!w.isConnected)return;
+    w.querySelector(".ranking-status").textContent="CONECTADO · PUNTUACIONES COMPARTIDAS";
+    w.querySelector("tbody").innerHTML=ranking.length?ranking.map((r,i)=>`<tr><td>${i+1}</td><td>${safe(r.name)}</td><td>${r.score}</td><td>${r.levels}/3</td><td>${formatTime(r.time)}</td></tr>`).join(""):`<tr><td colspan="5">Aún no hay marcas. Completa un nivel.</td></tr>`;
+  }catch(error){
+    if(!w.isConnected)return;
+    w.querySelector(".ranking-status").textContent="SIN CONEXIÓN CON EL RANKING GLOBAL";
+    w.querySelector("tbody").innerHTML=`<tr><td colspan="5">${safe(error.message||"No se pudo conectar con la base de datos.")}</td></tr>`;
+  }
+}
 
 function showHelp(){modal("Cómo jugar",`<div class="help-grid"><article><kbd>A</kbd><kbd>D</kbd><h3>MOVER</h3><p>Camina a izquierda y derecha.</p></article><article><kbd>⇧</kbd><h3>CORRER</h3><p>Más velocidad, consume resistencia.</p></article><article><kbd>ESPACIO</kbd><h3>SALTAR</h3><p>Supera plataformas y peligros.</p></article><article><kbd>S</kbd><h3>AGACHARSE</h3><p>Esquiva las piedras que vuelan a media altura.</p></article><article><kbd>J</kbd><h3>FALDA</h3><p>Golpe cercano, amplio y potente.</p></article><article><kbd>K</kbd><h3>ABANICO</h3><p>Más alcance, pero menos daño.</p></article><article><kbd>L</kbd><h3>GUITARRA</h3><p>Especial lento y devastador. Espera a que se recargue.</p></article></div><p class="goal-copy">Llega a las <strong>flores amarillas</strong>, cuida tus tres vidas y deja recuperar la barra de resistencia. P pausa · R reinicia.</p>`);}
 
@@ -80,7 +92,6 @@ function bindAudio(){
   sfx.onclick=()=>{if(save.data.audio.sfx)audio.sfx("button");audio.setSfxEnabled(!save.data.audio.sfx);save.save({audio:{...save.data.audio}});sfx.textContent=`FX ${save.data.audio.sfx?"ON":"OFF"}`;};
   volume.oninput=()=>{audio.setVolume(+volume.value);save.save({audio:{...save.data.audio}});};
 }
-function exportSave(){const a=document.createElement("a");a.href=URL.createObjectURL(save.export());a.download="la-dama-de-lima-partida.json";a.click();URL.revokeObjectURL(a.href);}
 const safe=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const formatTime=s=>`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,"0")}`;
 
