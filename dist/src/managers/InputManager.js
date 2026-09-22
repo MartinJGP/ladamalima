@@ -12,8 +12,8 @@ export class InputManager {
   bindTouch(root) {
     root.querySelectorAll("[data-key]").forEach(btn => {
       const code = btn.dataset.key;
-      const start = e => { e.preventDefault(); if (!this.down.has(code)) this.pressed.add(code); this.down.add(code); btn.classList.add("is-down"); };
-      const end = e => { e.preventDefault(); this.down.delete(code); btn.classList.remove("is-down"); };
+      const start = e => { e.preventDefault(); if (!this.down.has(code)) this.pressed.add(code); this.down.add(code); btn.classList.add("is-down"); btn.setPointerCapture?.(e.pointerId); };
+      const end = e => { e.preventDefault(); this.down.delete(code); btn.classList.remove("is-down"); if(btn.hasPointerCapture?.(e.pointerId))btn.releasePointerCapture(e.pointerId); };
       btn.addEventListener("pointerdown", start); btn.addEventListener("pointerup", end); btn.addEventListener("pointercancel", end); btn.addEventListener("pointerleave", end);
     });
   }
