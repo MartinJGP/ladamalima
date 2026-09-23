@@ -1,5 +1,5 @@
 export const ASSETS = {};
-const CACHE_VERSION = "pardillaje-1";
+const CACHE_VERSION = "pardillaje-pixel-2";
 
 const SOURCES = {
   heroine: "./assets/sprites/heroine-tuna-normalized-atlas.png",
@@ -28,10 +28,10 @@ const SOURCES = {
   bouquet: "./assets/sprites/bouquet-atlas.png",
   boss: "./assets/sprites/tuna-boss-atlas.png",
   bossDialogue: "./assets/sprites/boss-dialogue-portraits.png",
-  epilogueShots: "./assets/sprites/epilogue-shots.png",
-  epilogueRunning: "./assets/sprites/epilogue-running.png",
-  epiloguePoses: "./assets/sprites/epilogue-poses.png",
-  epiloguePyramid: "./assets/sprites/epilogue-pyramid.png",
+  epilogueShots: "./assets/sprites/epilogue-shots-v2.png",
+  epilogueRunning: "./assets/sprites/epilogue-running-v2.png",
+  epiloguePoses: "./assets/sprites/epilogue-poses-v2.png",
+  epiloguePyramid: "./assets/sprites/epilogue-pyramid-v2.png",
   regalia: "./assets/sprites/final-regalia-atlas.png",
   guitarItem: "./assets/sprites/guitar-equipment.png",
   lima: "./assets/backgrounds/plaza-mayor.png",

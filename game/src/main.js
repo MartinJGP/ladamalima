@@ -34,7 +34,7 @@ function renderMenu(){
       </nav>
       <div class="menu-meta"><span>RÉCORD ${String(save.data.record).padStart(6,"0")}</span><span>PROGRESO ${Object.keys(save.data.progress).length}/12</span></div>
     </div>
-    <aside class="sound-panel" aria-label="Audio"><button data-audio="music">MÚSICA ${save.data.audio.music?"ON":"OFF"}</button><button data-audio="sfx">FX ${save.data.audio.sfx?"ON":"OFF"}</button><label>VOL <input type="range" min="0" max="1" step=".05" value="${save.data.audio.volume}" data-audio="volume"></label></aside>
+    <aside class="sound-panel" aria-label="Audio y datos locales"><button data-audio="music">MÚSICA ${save.data.audio.music?"ON":"OFF"}</button><button data-audio="sfx">FX ${save.data.audio.sfx?"ON":"OFF"}</button><label>VOL <input type="range" min="0" max="1" step=".05" value="${save.data.audio.volume}" data-audio="volume"></label><button class="clear-cache" data-action="clearCache" title="Borrar el progreso de este navegador">BORRAR CACHÉ</button></aside>
     <p class="menu-hint">ENTER SELECCIONA · FLECHAS PARA MOVER</p>
   </section>`;
   shell.querySelectorAll("[data-action]").forEach(b=>b.onclick=()=>{audio.sfx("button");actions[b.dataset.action]();});
@@ -44,7 +44,7 @@ function renderMenu(){
 const actions={
   new:()=>{save.newGame();startGame(1);},
   continue:()=>startGame(save.data.currentLevel||1),
-  levels:()=>showLevels(),ranking:()=>showRanking(),help:()=>showHelp(),credits:()=>showCredits()
+  levels:()=>showLevels(),ranking:()=>showRanking(),help:()=>showHelp(),credits:()=>showCredits(),clearCache:()=>showClearCache()
 };
 
 function keyboardMenu(){const buttons=[...shell.querySelectorAll(".menu-btn:not(:disabled)")];if(!buttons.length)return;let i=0;buttons[0].focus();shell.onkeydown=e=>{if(e.key==="ArrowDown"){i=(i+1)%buttons.length;buttons[i].focus();}if(e.key==="ArrowUp"){i=(i-1+buttons.length)%buttons.length;buttons[i].focus();}};}
@@ -55,6 +55,10 @@ function modal(title,body,confirm="VOLVER",onConfirm=closeModal,dismissible=true
   wrap.querySelector(".primary-modal").onclick=()=>onConfirm(wrap);wrap.querySelector("input")?.focus();return wrap;
 }
 function closeModal(w){w.remove();}
+
+function showClearCache(){
+  modal("Borrar datos locales",`<p>Se borrarán los niveles desbloqueados, el progreso, el récord, las opciones y la marca de puntuación ya enviada <strong>solo en este navegador</strong>.</p><p class="muted">La puntuación que ya aparece en el ranking global no se eliminará.</p>`,"BORRAR Y EMPEZAR DE CERO",()=>{save.clearLocalData();audio.stop();renderMenu();},true,closeModal);
+}
 
 function showLevels(){
   const worlds=WORLDS.map(world=>{const levels=LEVELS.filter(level=>level.world===world.id).map(level=>{const locked=level.id>save.data.unlocked,best=save.data.progress[level.id]?.score||0,current=level.id===save.data.currentLevel&&!locked;const status=locked?"BLOQUEADO":current?"ACTUAL":best?"COMPLETO":"DISPONIBLE";return `<button class="level-card${current?" is-current":""}" data-level="${level.id}" ${locked?"disabled":""} aria-label="Capítulo ${level.chapter}, ${status.toLowerCase()}"><b>${level.chapter}</b><small>${locked?"×":current?"ACTUAL":best?"✓":"○"}</small></button>`;}).join("");const worldLocked=(world.id-1)*4+1>save.data.unlocked;return `<section class="world-levels ${worldLocked?"is-locked":""}"><h3>MUNDO ${world.id} · ${world.name}</h3><p>${world.subtitle}</p><div class="level-grid">${levels}</div></section>`;}).join("");
@@ -81,7 +85,7 @@ function showCredits(){modal("Créditos",`<div class="credits"><img class="credi
 
 function startGame(id){
   epilogue?.stop();epilogue=null;
-  const level=LEVELS[id-1]||LEVELS[0],attackOneLabel=level.costume==="aspirant"?"patada":"falda";audio.ensure();save.save({currentLevel:id});shell.onkeydown=null;shell.innerHTML=`<section class="play-screen"><div class="game-topbar"><div class="hud-name"><small>JUGADOR</small><b>${safe(save.data.name||"VISITANTE")}</b></div><div><small>VIDAS</small><b id="lives">♥ ♥ ♥</b></div><div><small>PUNTOS</small><b id="score">000000</b></div><div><small>MUNDO/NIVEL</small><b>${level.world}-${String(level.chapter).padStart(2,"0")}</b></div><div class="stamina-wrap"><small>RESISTENCIA</small><div class="meter"><i id="stamina"></i></div></div><div class="special-wrap"><small>ESPECIAL GUITARRA</small><div class="meter special"><i id="special"></i></div></div><div class="attack-ready"><small>ATAQUES</small><b id="cooldowns">J ◆ K × L × ↑² ◆</b></div><div class="top-actions"><button id="fullscreen-btn" aria-label="Pantalla completa" title="Pantalla completa">⛶</button><button id="pause-btn" aria-label="Pausar" title="Pausar">Ⅱ</button></div></div><div class="canvas-wrap"><canvas id="game" width="${GAME.width}" height="${GAME.height}" aria-label="Juego de plataformas La Dama de Lima"></canvas><div class="level-banner"><b>MUNDO ${level.world} · ${level.worldName}</b><span>${String(level.chapter).padStart(2,"0")} · ${level.name}</span></div></div><div class="touch-controls"></div><p class="desktop-controls">A D mover · SHIFT correr · ESPACIO saltar (otra vez en el aire: doble salto, recarga 2 s) · S agacharse · J ${attackOneLabel} · K abanico · L guitarra · P pausa · R reiniciar</p></section>`;
+  const level=LEVELS[id-1]||LEVELS[0],attackOneLabel=level.costume==="aspirant"?"patada":"falda";audio.ensure();save.save({currentLevel:id,started:true});shell.onkeydown=null;shell.innerHTML=`<section class="play-screen"><div class="game-topbar"><div class="hud-name"><small>JUGADOR</small><b>${safe(save.data.name||"VISITANTE")}</b></div><div><small>VIDAS</small><b id="lives">♥ ♥ ♥</b></div><div><small>PUNTOS</small><b id="score">000000</b></div><div><small>MUNDO/NIVEL</small><b>${level.world}-${String(level.chapter).padStart(2,"0")}</b></div><div class="stamina-wrap"><small>RESISTENCIA</small><div class="meter"><i id="stamina"></i></div></div><div class="special-wrap"><small>ESPECIAL GUITARRA</small><div class="meter special"><i id="special"></i></div></div><div class="attack-ready"><small>ATAQUES</small><b id="cooldowns">J ◆ K × L × ↑² ◆</b></div><div class="top-actions"><button id="fullscreen-btn" aria-label="Pantalla completa" title="Pantalla completa">⛶</button><button id="pause-btn" aria-label="Pausar" title="Pausar">Ⅱ</button></div></div><div class="canvas-wrap"><canvas id="game" width="${GAME.width}" height="${GAME.height}" aria-label="Juego de plataformas La Dama de Lima"></canvas><div class="level-banner"><b>MUNDO ${level.world} · ${level.worldName}</b><span>${String(level.chapter).padStart(2,"0")} · ${level.name}</span></div></div><div class="touch-controls"></div><p class="desktop-controls">A D mover · SHIFT correr · ESPACIO saltar (otra vez en el aire: doble salto, recarga 2 s) · S agacharse · J ${attackOneLabel} · K abanico · L guitarra · P pausa · R reiniciar</p></section>`;
   const touch=shell.querySelector(".touch-controls");touch.setAttribute("aria-label","Controles táctiles");touch.innerHTML=`<div class="touch-left"><button class="touch-run" data-key="ShiftLeft" data-auto-forward="true" aria-label="Correr hacia adelante">RUN</button><button class="touch-left-move" data-key="ArrowLeft" aria-label="Mover izquierda">◀</button><button class="touch-right-move" data-key="ArrowRight" aria-label="Mover derecha">▶</button></div><div class="touch-right"><button class="touch-jump" data-key="Space" aria-label="Saltar; pulsar otra vez en el aire para salto doble">↑</button><button data-key="KeyS" aria-label="Agacharse">↓</button><button data-key="KeyJ" aria-label="Ataque de ${attackOneLabel}">J</button><button data-key="KeyK" aria-label="Ataque de abanico">K</button><button class="touch-special" data-key="KeyL" aria-label="Ataque especial de guitarra">L</button></div>`;input.bindTouch(shell);if(!shell.querySelector(".rotate-overlay")){const rotate=document.createElement("div");rotate.className="rotate-overlay";rotate.setAttribute("role","status");rotate.innerHTML="<strong>Gira tu dispositivo para jugar</strong><span>Coloca el teléfono en horizontal</span>";shell.querySelector(".play-screen").append(rotate);}const banner=shell.querySelector(".level-banner");setTimeout(()=>banner.classList.add("hide"),2400);
   game=new Game(shell.querySelector("#game"),input,audio,save,{hud:updateHud,pause:p=>shell.querySelector("#pause-btn").textContent=p?"▶":"Ⅱ",complete:showComplete,gameOver:showGameOver});
   try{game.start(id);}catch(error){console.error("No se pudo iniciar el nivel",error);game=null;modal("No se pudo iniciar",`<p>El escenario no pudo cargarse correctamente.</p><p class="muted">Recarga la página e inténtalo de nuevo.</p>`,`VOLVER AL MENÚ`,()=>renderMenu(),false);return;}
@@ -101,20 +105,21 @@ function showComplete(r){
 function showFinalSequence(){
   game?.stop();game=null;
   shell.onkeydown=null;
-  shell.innerHTML=`<section class="epilogue-screen"><header><span>LA DAMA DE LIMA</span><strong>EL PARDILLAJE</strong><span>FIN DE LA AVENTURA</span></header><div class="epilogue-frame"><canvas id="epilogue-canvas" width="768" height="512" aria-label="Recuerdos animados de las tres pardillas"></canvas><div class="epilogue-caption" aria-live="polite"></div></div><p class="epilogue-score">PUNTUACIÓN FINAL · ${String(save.data.score).padStart(6,"0")}</p><div class="epilogue-actions"><button id="epilogue-menu" class="secondary-modal">SALIR AL MENÚ</button><button id="epilogue-save" class="epilogue-save">GUARDAR PUNTUACIÓN</button></div></section>`;
+  shell.innerHTML=`<section class="epilogue-screen"><header><span>LA DAMA DE LIMA</span><strong>EL PARDILLAJE</strong><span>FIN DE LA AVENTURA</span></header><div class="epilogue-frame"><canvas id="epilogue-canvas" width="768" height="512" aria-label="Recuerdos animados de las tres pardillas"></canvas><div class="epilogue-caption" aria-live="polite"></div></div><p class="epilogue-score">PUNTUACIÓN FINAL · ${String(save.data.score).padStart(6,"0")}</p><div class="epilogue-actions"><button id="epilogue-menu" class="secondary-modal">SALIR AL MENÚ</button>${save.data.rankingSubmitted?"":'<button id="epilogue-save" class="epilogue-save">GUARDAR PUNTUACIÓN</button>'}</div></section>`;
   epilogue=new Epilogue(shell.querySelector("#epilogue-canvas"),caption=>{const node=shell.querySelector(".epilogue-caption");if(node)node.textContent=caption;});
   epilogue.start();
   audio.music("epilogue");
   shell.querySelector("#epilogue-menu").onclick=renderMenu;
-  shell.querySelector("#epilogue-save").onclick=showFinalRanking;
+  const saveButton=shell.querySelector("#epilogue-save");if(saveButton)saveButton.onclick=showFinalRanking;
 }
 function showFinalRanking(){
+  if(save.data.rankingSubmitted)return;
   const body=`<div class="result-score">${save.data.score}</div><p>Si quieres aparecer en el ranking global, escribe tu nombre. Puedes cerrar esta ventana y seguir viendo el final sin guardar.</p><label class="field">NOMBRE PARA EL RANKING<input id="ranking-name" maxlength="18" autocomplete="off" placeholder="Tu nombre"></label><button id="save-ranking">GUARDAR PUNTUACIÓN</button><p class="muted ranking-save-status" role="status"></p>`;
   const w=modal("Guardar puntuación",body,"VOLVER AL FINAL",closeModal,true,closeModal);
   const button=w.querySelector("#save-ranking"),inputName=w.querySelector("#ranking-name"),status=w.querySelector(".ranking-save-status");
   button.onclick=async()=>{
     button.disabled=true;status.textContent="Guardando en el ranking global…";
-    try{await save.submitFinalRanking(inputName.value);status.textContent="PUNTUACIÓN GUARDADA EN EL RANKING GLOBAL";inputName.disabled=true;button.textContent="GUARDADO";}
+    try{const result=await save.submitFinalRanking(inputName.value);status.textContent=result.duplicate?"ESTE NAVEGADOR YA GUARDÓ UNA PUNTUACIÓN":"PUNTUACIÓN GUARDADA EN EL RANKING GLOBAL";inputName.disabled=true;button.textContent="GUARDADO";shell.querySelector("#epilogue-save")?.remove();}
     catch(error){status.textContent=error.message;button.disabled=false;inputName.focus();}
   };
 }

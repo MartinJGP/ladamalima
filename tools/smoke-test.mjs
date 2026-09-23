@@ -20,7 +20,7 @@ assert.deepEqual(pngSize("sprites/heroine-novice-atlas.png"),[2000,800],"el atla
 assert.deepEqual(pngSize("backgrounds/barranco.png"),[2079,756]);
 assert.deepEqual(pngSize("backgrounds/trujillo.png"),[2079,756]);
 assert.deepEqual(pngSize("sprites/boss-dialogue-portraits.png"),[1536,1024],"el diálogo debe tener cuatro retratos en un atlas 2x2");
-for(const scene of ["shots","running","poses","pyramid"])assert.deepEqual(pngSize(`sprites/epilogue-${scene}.png`),[1536,1024],`el epílogo ${scene} debe tener cuatro cuadros 2x2`);
+for(const scene of ["shots","running","poses","pyramid"])assert.deepEqual(pngSize(`sprites/epilogue-${scene}-v2.png`),[1536,1024],`el epílogo ${scene} debe tener cuatro cuadros 2x2`);
 assert.ok(readFileSync(assetPath("audio/te-mando-flores-remastered.mp3")).length>1000000,"la canción del epílogo debe estar incluida");
 
 assert.equal(PLAYER_VISUAL_SCALE,.95);
@@ -77,6 +77,29 @@ await saves.submitFinalRanking("Martin");
 assert.equal(rankingRequests,1,"el ranking debe publicarse solo tras aceptar al final de la partida");
 await saves.submitFinalRanking("Martin");
 assert.equal(rankingRequests,1,"una partida no debe publicarse dos veces");
+
+const browserData=new Map();
+const browserStorage={getItem:key=>browserData.get(key)??null,setItem:(key,value)=>browserData.set(key,value),removeItem:key=>browserData.delete(key)};
+const firstVisit=new SaveManager(browserStorage);
+firstVisit.newGame();
+firstVisit.complete(1,500,30);
+assert.equal(new SaveManager(browserStorage).data.unlocked,2,"el desbloqueo debe sobrevivir a recargar el navegador");
+assert.equal(new SaveManager({getItem:()=>null}).data.unlocked,1,"otro navegador debe empezar desde el primer nivel");
+const restarted=new SaveManager(browserStorage);
+restarted.newGame();
+assert.equal(restarted.data.unlocked,2,"nueva partida no debe bloquear niveles ya ganados");
+assert.equal(restarted.data.currentLevel,1,"nueva partida sí debe empezar en el primer nivel");
+for(let level=2;level<=12;level++)restarted.complete(level,500,30);
+await restarted.submitFinalRanking("Martin");
+assert.equal(rankingRequests,2);
+const afterReload=new SaveManager(browserStorage);
+assert.equal(afterReload.data.rankingSubmitted,true,"el envío debe quedar marcado en este navegador");
+afterReload.newGame();
+await afterReload.submitFinalRanking("Otro nombre");
+assert.equal(rankingRequests,2,"repetir el final no debe enviar otra puntuación");
+afterReload.clearLocalData();
+assert.equal(new SaveManager(browserStorage).data.unlocked,1,"borrar datos locales debe bloquear de nuevo los niveles");
+assert.equal(new SaveManager(browserStorage).data.rankingSubmitted,false,"borrar datos locales permite empezar desde cero");
 
 const touchInput=Object.assign(Object.create(InputManager.prototype),{down:new Set(),pressed:new Set(),keyboardDown:new Set(),touchRefs:new Map(),lastDirection:"ArrowRight"});
 const listeners={};const runButton={dataset:{key:"ShiftLeft",autoForward:"true"},classList:{add:()=>{},remove:()=>{}},addEventListener:(name,fn)=>listeners[name]=fn,setPointerCapture:()=>{},hasPointerCapture:()=>false};
